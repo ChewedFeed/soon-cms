@@ -1,4 +1,4 @@
-module github.com/chewedfeed/cms
+module github.com/chewedfeed/soon-cms
 
 go 1.19
 

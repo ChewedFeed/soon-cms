@@ -33,7 +33,7 @@ spec:
         - name: regcred
       containers:
         - name: cms
-          image: containers.chewedfeed.com/chewedfeed/cms:latest
+          image: containers.chewedfeed.com/chewedfeed/soon-cms:latest
           imagePullPolicy: Always
           readinessProbe:
             httpGet:

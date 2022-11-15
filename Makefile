@@ -1,4 +1,4 @@
-SERVICE_NAME=cms
+SERVICE_NAME=soon-cms
 GIT_COMMIT=`git rev-parse --short HEAD`
 -include .env
 export

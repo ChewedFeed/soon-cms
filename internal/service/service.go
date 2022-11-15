@@ -8,8 +8,8 @@ import (
 
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
 	bugMiddleware "github.com/bugfixes/go-bugfixes/middleware"
-	retro "github.com/chewedfeed/cms/internal/cms"
-	"github.com/chewedfeed/cms/internal/config"
+	"github.com/chewedfeed/soon-cms/internal/config"
+	retro "github.com/chewedfeed/soon-cms/internal/soon-cms"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httplog"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
-	"github.com/chewedfeed/cms/internal/config"
+	"github.com/chewedfeed/soon-cms/internal/config"
 	pgx "github.com/jackc/pgx/v4"
 )
 
