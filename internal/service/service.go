@@ -35,9 +35,15 @@ func (s *Service) Start() error {
 		"https://chewedfeed.com",
 		"https://www.chewedfeed.com",
 	}
-	//if s.Config.Development {
-	allowedOrigins = append(allowedOrigins, "http://*")
-	//}
+
+	if s.Config.Development {
+		allowedOrigins = append(allowedOrigins, "http://*")
+	}
+	services, err := cms.NewCMS(s.Config).AllowedOrigins()
+	if err != nil {
+		return bugLog.Error(err)
+	}
+	allowedOrigins = append(allowedOrigins, services...)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   allowedOrigins,

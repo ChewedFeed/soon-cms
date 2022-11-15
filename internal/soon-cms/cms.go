@@ -3,6 +3,7 @@ package retro
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
 	"github.com/chewedfeed/soon-cms/internal/config"
@@ -101,4 +102,31 @@ func (c CMS) getService(name string) (Service, error) {
 	}
 
 	return service, nil
+}
+
+func (c CMS) AllowedOrigins() ([]string, error) {
+	db, err := c.getDB()
+	if err != nil {
+		return nil, bugLog.Error(err)
+	}
+	defer db.Close(c.CTX)
+
+	rows, err := db.Query(c.CTX, "SELECT url FROM services")
+	if err != nil {
+		return nil, bugLog.Error(err)
+	}
+	defer rows.Close()
+	origins := make([]string, 0)
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, bugLog.Error(err)
+		}
+		origins = append(origins, url)
+
+		www := strings.Replace("http://", "https://www", url, 1)
+		origins = append(origins, www)
+	}
+
+	return origins, nil
 }
