@@ -1,11 +1,4 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  namespace: chewedfeed
-  name: chewewdfeed-cms
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,11 +21,10 @@ spec:
         app: cms
         name: cms
     spec:
-      serviceAccountName: chewedfeed-soon-cms
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: soon-cms
+        - name: cms
           image: containers.chewedfeed.com/chewedfeed/soon-cms:latest
           imagePullPolicy: Always
           readinessProbe:

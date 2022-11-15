@@ -16,12 +16,12 @@ spec:
         - soon-cms.chewedfeed.com
       secretName: chewedfeed-soon-cms
   rules:
-    - host: soon-cms.chewedfeed.com
+    - host: cms.chewedfeed.com
       http:
         paths:
           - backend:
               service:
-                name: soon-cms
+                name: cms
                 port:
                   number: 80
             path: /
