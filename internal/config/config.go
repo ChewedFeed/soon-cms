@@ -15,9 +15,7 @@ type Config struct {
 func Build() (*Config, error) {
 	cfg := &Config{}
 
-	if err := godotenv.Load(); err != nil {
-		return nil, bugLog.Error(err)
-	}
+	_ = godotenv.Load()
 
 	if err := env.Parse(cfg); err != nil {
 		return nil, bugLog.Error(err)
