@@ -11,7 +11,7 @@ setup: ## Get linting stuffs
 .PHONY: build-images
 build-images: ## Build the images
 	nerdctl build --platform=amd64,arm64 --tag containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --build-arg VERSION=0.1 --build-arg BUILD=${GIT_COMMIT} --build-arg SERVICE_NAME=${SERVICE_NAME} -f ./k8s/Containerfile .
-	nerdctl tag containers.chewedfeed.com/chewedfed/${SERVICE_NAME}:${GIT_COMMIT} containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:latest
+	nerdctl tag containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:latest
 
 .PHONY: publish-images
 publish-images:

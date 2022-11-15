@@ -1,6 +1,5 @@
 package retro
 
-import "C"
 import (
 	"context"
 	"fmt"
