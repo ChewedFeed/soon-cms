@@ -13,7 +13,7 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - soon-cms.chewedfeed.com
+        - cms.chewedfeed.com
       secretName: chewedfeed-soon-cms
   rules:
     - host: cms.chewedfeed.com
