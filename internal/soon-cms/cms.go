@@ -124,7 +124,7 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 		}
 		origins = append(origins, url)
 
-		www := strings.Replace("http://", "https://www", url, 1)
+		www := strings.Replace(url, "https://", "https://www.", 1)
 		origins = append(origins, www)
 	}
 
