@@ -13,15 +13,15 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - cms.chewedfeed.com
-      secretName: chewedfeed-cms
+        - soon-cms.chewedfeed.com
+      secretName: chewedfeed-soon-cms
   rules:
-    - host: cms.chewedfeed.com
+    - host: soon-cms.chewedfeed.com
       http:
         paths:
           - backend:
               service:
-                name: cms
+                name: soon-cms
                 port:
                   number: 80
             path: /

@@ -28,11 +28,11 @@ spec:
         app: cms
         name: cms
     spec:
-      serviceAccountName: chewedfeed-cms
+      serviceAccountName: chewedfeed-soon-cms
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: cms
+        - name: soon-cms
           image: containers.chewedfeed.com/chewedfeed/soon-cms:latest
           imagePullPolicy: Always
           readinessProbe:

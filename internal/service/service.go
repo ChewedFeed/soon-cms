@@ -3,13 +3,15 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"time"
+
+	cms "github.com/chewedfeed/soon-cms/internal/soon-cms"
 
 	"github.com/go-chi/chi/v5"
 
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
 	bugMiddleware "github.com/bugfixes/go-bugfixes/middleware"
 	"github.com/chewedfeed/soon-cms/internal/config"
-	retro "github.com/chewedfeed/soon-cms/internal/soon-cms"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httplog"
@@ -24,7 +26,7 @@ type Service struct {
 func (s *Service) Start() error {
 	bugLog.Local().Info("Starting CMS")
 
-	logger := httplog.NewLogger("cms", httplog.Options{
+	logger := httplog.NewLogger("soon-cms", httplog.Options{
 		JSON: true,
 	})
 
@@ -56,15 +58,21 @@ func (s *Service) Start() error {
 		r.Use(bugMiddleware.BugFixes)
 		r.Use(httplog.RequestLogger(logger))
 
-		r.Get("/services", retro.NewCMS(s.Config).ServicesHandler)
-		r.Get("/service/{service}", retro.NewCMS(s.Config).ServiceHandler)
+		r.Get("/services", cms.NewCMS(s.Config).ServicesHandler)
+		r.Get("/service/{service}", cms.NewCMS(s.Config).ServiceHandler)
 	})
 
 	r.Get("/health", healthcheck.HTTP)
 	r.Get("/probe", probe.HTTP)
 
 	bugLog.Local().Infof("listening on %d\n", s.Config.Local.Port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", s.Config.Local.Port), r); err != nil {
+	server := &http.Server{
+		Addr:              fmt.Sprintf(":%d", s.Config.Local.Port),
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		return bugLog.Errorf("port failed: %+v", err)
 	}
 
