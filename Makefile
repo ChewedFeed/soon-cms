@@ -25,6 +25,9 @@ build: build-images
 deploy:
 	kubectl set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --namespace=retro-board
 
+.PHONY: build-push
+build-push: build publish-images
+
 .PHONY: build-deploy
 build-deploy: build publish-images deploy
 
