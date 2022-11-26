@@ -53,7 +53,7 @@ func (c CMS) getServices() ([]Service, error) {
 	}
 	defer db.Close(c.CTX)
 
-	rows, err := db.Query(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description FROM services")
+	rows, err := db.Query(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description FROM services WHERE started = true")
 	if err != nil {
 		return nil, bugLog.Error(err)
 	}
