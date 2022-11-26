@@ -66,6 +66,7 @@ func (s *Service) Start() error {
 
 		r.Get("/services", cms.NewCMS(s.Config).ServicesHandler)
 		r.Get("/service/{service}", cms.NewCMS(s.Config).ServiceHandler)
+		r.Get("/script", cms.NewCMS(s.Config).ScriptHandler)
 	})
 
 	r.Get("/health", healthcheck.HTTP)

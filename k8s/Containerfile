@@ -28,6 +28,7 @@ RUN rm -rf /var/cache/apk/*
 
 COPY --from=builder /service /home/
 COPY .env /home/.env
+COPY script.js /home/script.js
 
 ## Set the timezone
 ENV TZ=Europe/London

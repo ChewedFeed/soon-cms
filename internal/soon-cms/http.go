@@ -2,10 +2,10 @@ package retro
 
 import (
 	"encoding/json"
-	"net/http"
-
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
 	"github.com/go-chi/chi/v5"
+	"io/ioutil"
+	"net/http"
 )
 
 func jsonError(w http.ResponseWriter, err error) {
@@ -45,5 +45,21 @@ func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(service); err != nil {
 		bugLog.Local().Debugf("ServiceHandler: %v", err)
+	}
+}
+
+func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
+	b, err := ioutil.ReadFile("script.js")
+	if err != nil {
+		jsonError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/javascript")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(b)
+	if err != nil {
+		jsonError(w, err)
+		return
 	}
 }
