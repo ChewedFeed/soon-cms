@@ -111,20 +111,32 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 	}
 	defer db.Close(c.CTX)
 
-	rows, err := db.Query(c.CTX, "SELECT url FROM services")
+	rows, err := db.Query(c.CTX, "SELECT url, alternatives FROM services")
 	if err != nil {
 		return nil, bugLog.Error(err)
 	}
+	type service struct {
+		URL  *string
+		Alts *string
+	}
+
 	defer rows.Close()
 	origins := make([]string, 0)
 	for rows.Next() {
-		var url string
-		if err := rows.Scan(&url); err != nil {
+		var s service
+		if err := rows.Scan(&s.URL, &s.Alts); err != nil {
 			return nil, bugLog.Error(err)
 		}
-		origins = append(origins, url)
+		if s.Alts != nil {
+			alts := strings.Split(*s.Alts, ",")
+			for _, alt := range alts {
+				origins = append(origins, fmt.Sprintf("https://%s", alt))
+				origins = append(origins, fmt.Sprintf("https://www.%s", alt))
+			}
+		}
+		origins = append(origins, *s.URL)
 
-		www := strings.Replace(url, "https://", "https://www.", 1)
+		www := strings.Replace(*s.URL, "https://", "https://www.", 1)
 		origins = append(origins, www)
 	}
 
