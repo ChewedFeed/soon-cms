@@ -23,6 +23,7 @@ type Service struct {
 	Progress    int        `json:"progress"`
 	Icon        string     `json:"icon"`
 	FullDesc    string     `json:"fullDesc"`
+	Uptime      string     `json:"uptime"`
 }
 type LaunchDate struct {
 	Year  int `json:"year"`
@@ -53,7 +54,7 @@ func (c CMS) getServices() ([]Service, error) {
 	}
 	defer db.Close(c.CTX)
 
-	rows, err := db.Query(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description FROM services WHERE started = true")
+	rows, err := db.Query(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE started = true")
 	if err != nil {
 		return nil, bugLog.Error(err)
 	}
@@ -71,9 +72,11 @@ func (c CMS) getServices() ([]Service, error) {
 			&service.URL,
 			&service.Progress,
 			&service.Icon,
-			&service.FullDesc); err != nil {
+			&service.FullDesc,
+			&service.Uptime); err != nil {
 			return nil, bugLog.Error(err)
 		}
+		service.Uptime = fmt.Sprintf("https://uptime.chewedfeed.com/status/%s", service.Uptime)
 		services = append(services, service)
 	}
 
@@ -88,7 +91,7 @@ func (c CMS) getService(name string) (Service, error) {
 	defer db.Close(c.CTX)
 
 	var service Service
-	if err := db.QueryRow(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description FROM services WHERE search_name = $1", name).Scan(
+	if err := db.QueryRow(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE search_name = $1", name).Scan(
 		&service.Name,
 		&service.Description,
 		&service.LaunchDate.Year,
@@ -97,10 +100,12 @@ func (c CMS) getService(name string) (Service, error) {
 		&service.URL,
 		&service.Progress,
 		&service.Icon,
-		&service.FullDesc); err != nil {
+		&service.FullDesc,
+		&service.Uptime); err != nil {
 		return Service{}, bugLog.Error(err)
 	}
 
+	service.Uptime = fmt.Sprintf("https://uptime.chewedfeed.com/status/%s", service.Uptime)
 	return service, nil
 }
 

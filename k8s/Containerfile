@@ -1,5 +1,5 @@
 # Build
-FROM golang:alpine3.17 AS builder
+FROM container.chewedfeed.com/docker_hub_cache/library/golang:alpine3.17 AS builder
 
 RUN mkdir -p /home/builder
 WORKDIR /home/builder
@@ -19,7 +19,7 @@ RUN go build --ldflags "-X main.BuildVersion=${VERSION} -X main.BuildHash=${BUIL
 RUN cp ./bin/service /
 
 # Runner
-FROM alpine:3.17 AS Runner
+FROM containers.chewedfeed.com/docker_hub_cache/library/alpine:3.17 AS Runner
 RUN apk update
 RUN apk upgrade
 RUN apk add ca-certificates && update-ca-certificates
