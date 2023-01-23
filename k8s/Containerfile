@@ -1,5 +1,5 @@
 # Build
-FROM container.chewedfeed.com/docker_hub_cache/library/golang:alpine3.17 AS builder
+FROM containers.chewedfeed.com/docker_hub_cache/library/golang:alpine3.17 AS builder
 
 RUN mkdir -p /home/builder
 WORKDIR /home/builder
