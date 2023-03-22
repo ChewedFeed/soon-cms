@@ -26,7 +26,7 @@ func buildDatabase(c *Config) error {
 		return nil
 	}
 
-	pass, err := c.getVaultSecrets("database/creds/chewedfeed-soon-cms")
+	pass, err := c.getVaultSecrets("database/creds/chewedfeed_coming_soon-database-role")
 	if err != nil {
 		return err
 	}

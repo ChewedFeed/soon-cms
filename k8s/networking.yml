@@ -5,7 +5,7 @@ metadata:
   namespace: chewedfeed
   name: cms
   annotations:
-    cert-manager.io/cluster-issuer: acme-prod
+    cert-manager.io/cluster-issuer: live-issuer
     nginx.ingress.kubernetes.io/rewrite-target: /
   labels:
     app: cms
@@ -23,6 +23,6 @@ spec:
               service:
                 name: cms
                 port:
-                  number: 3000
+                  number: 300
             path: /
             pathType: Prefix

@@ -10,20 +10,20 @@ setup: ## Get linting stuffs
 
 .PHONY: build-images
 build-images: ## Build the images
-	nerdctl build --platform=amd64,arm64 --tag containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --build-arg VERSION=0.1 --build-arg BUILD=${GIT_COMMIT} --build-arg SERVICE_NAME=${SERVICE_NAME} -f ./k8s/Containerfile .
-	nerdctl tag containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:latest
+	nerdctl build --platform=amd64,arm64 --tag containers.chewed-k8s.net/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --build-arg VERSION=0.1 --build-arg BUILD=${GIT_COMMIT} --build-arg SERVICE_NAME=${SERVICE_NAME} -f ./k8s/Containerfile .
+	nerdctl tag containers.chewed-k8s.net/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} containers.chewed-k8s.net/chewedfeed/${SERVICE_NAME}:latest
 
 .PHONY: publish-images
 publish-images:
-	nerdctl push containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --all-platforms
-	nerdctl push containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:latest --all-platforms
+	nerdctl push containers.chewed-k8s.net/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --all-platforms
+	nerdctl push containers.chewed-k8s.net/chewedfeed/${SERVICE_NAME}:latest --all-platforms
 
 .PHONY: build
 build: build-images
 
 .PHONY: deploy
 deploy:
-	kubectl set image deployment/cms cms=containers.chewedfeed.com/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --namespace=chewedfeed
+	kubectl set image deployment/cms cms=containers.chewed-k8s.net/chewedfeed/${SERVICE_NAME}:${GIT_COMMIT} --namespace=chewedfeed
 .PHONY: build-push
 build-push: build publish-images
 
