@@ -20,10 +20,16 @@ import (
 )
 
 type Service struct {
-	Config *config.Config
+	Config       *config.Config
+	ErrorChannel chan error
 }
 
 func (s *Service) Start() error {
+	go s.StartHTTP()
+	return <-s.ErrorChannel
+}
+
+func (s *Service) StartHTTP() {
 	bugLog.Local().Info("Starting CMS")
 
 	logger := httplog.NewLogger("soon-cms", httplog.Options{
@@ -39,9 +45,9 @@ func (s *Service) Start() error {
 	if s.Config.Development {
 		allowedOrigins = append(allowedOrigins, "http://*")
 	}
-	services, err := cms.NewCMS(s.Config).AllowedOrigins()
+	services, err := cms.NewCMS(s.Config, s.ErrorChannel).AllowedOrigins()
 	if err != nil {
-		return bugLog.Error(err)
+		s.ErrorChannel <- bugLog.Error(err)
 	}
 	allowedOrigins = append(allowedOrigins, services...)
 
@@ -64,9 +70,9 @@ func (s *Service) Start() error {
 		r.Use(bugMiddleware.BugFixes)
 		r.Use(httplog.RequestLogger(logger))
 
-		r.Get("/services", cms.NewCMS(s.Config).ServicesHandler)
-		r.Get("/service/{service}", cms.NewCMS(s.Config).ServiceHandler)
-		r.Get("/script", cms.NewCMS(s.Config).ScriptHandler)
+		r.Get("/services", cms.NewCMS(s.Config, s.ErrorChannel).ServicesHandler)
+		r.Get("/service/{service}", cms.NewCMS(s.Config, s.ErrorChannel).ServiceHandler)
+		r.Get("/script", cms.NewCMS(s.Config, s.ErrorChannel).ScriptHandler)
 	})
 
 	r.Get("/health", healthcheck.HTTP)
@@ -80,8 +86,6 @@ func (s *Service) Start() error {
 	}
 
 	if err := server.ListenAndServe(); err != nil {
-		return bugLog.Errorf("port failed: %+v", err)
+		s.ErrorChannel <- bugLog.Errorf("port failed: %+v", err)
 	}
-
-	return nil
 }

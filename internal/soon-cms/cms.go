@@ -11,8 +11,9 @@ import (
 )
 
 type CMS struct {
-	Config *config.Config
-	CTX    context.Context
+	Config       *config.Config
+	CTX          context.Context
+	ErrorChannel chan error
 }
 
 type Service struct {
@@ -31,16 +32,18 @@ type LaunchDate struct {
 	Day   int `json:"day"`
 }
 
-func NewCMS(config *config.Config) *CMS {
+func NewCMS(config *config.Config, errChan chan error) *CMS {
 	return &CMS{
-		Config: config,
-		CTX:    context.Background(),
+		Config:       config,
+		CTX:          context.Background(),
+		ErrorChannel: errChan,
 	}
 }
 
 func (c CMS) getDB() (*pgx.Conn, error) {
 	conn, err := pgx.Connect(c.CTX, fmt.Sprintf("postgres://%s:%s@%s:%d/%s", c.Config.Database.User, c.Config.Database.Password, c.Config.Database.Host, c.Config.Database.Port, c.Config.Database.DBName))
 	if err != nil {
+		c.ErrorChannel <- bugLog.Error(err)
 		return nil, bugLog.Error(err)
 	}
 
@@ -50,6 +53,7 @@ func (c CMS) getDB() (*pgx.Conn, error) {
 func (c CMS) getServices() ([]Service, error) {
 	db, err := c.getDB()
 	if err != nil {
+		c.ErrorChannel <- bugLog.Error(err)
 		return nil, bugLog.Error(err)
 	}
 	defer db.Close(c.CTX)
@@ -86,6 +90,7 @@ func (c CMS) getServices() ([]Service, error) {
 func (c CMS) getService(name string) (Service, error) {
 	db, err := c.getDB()
 	if err != nil {
+		c.ErrorChannel <- bugLog.Error(err)
 		return Service{}, bugLog.Error(err)
 	}
 	defer db.Close(c.CTX)
@@ -112,6 +117,7 @@ func (c CMS) getService(name string) (Service, error) {
 func (c CMS) AllowedOrigins() ([]string, error) {
 	db, err := c.getDB()
 	if err != nil {
+		c.ErrorChannel <- bugLog.Error(err)
 		return nil, bugLog.Error(err)
 	}
 	defer db.Close(c.CTX)
