@@ -25,6 +25,7 @@ type Service struct {
 	Icon        string     `json:"icon"`
 	FullDesc    string     `json:"fullDesc"`
 	Uptime      string     `json:"uptime"`
+	Launched    bool       `json:"launched"`
 }
 type LaunchDate struct {
 	Year  int `json:"year"`
@@ -58,7 +59,7 @@ func (c CMS) getServices() ([]Service, error) {
 	}
 	defer db.Close(c.CTX)
 
-	rows, err := db.Query(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE started = true")
+	rows, err := db.Query(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE started = true")
 	if err != nil {
 		return nil, bugLog.Error(err)
 	}
@@ -77,7 +78,8 @@ func (c CMS) getServices() ([]Service, error) {
 			&service.Progress,
 			&service.Icon,
 			&service.FullDesc,
-			&service.Uptime); err != nil {
+			&service.Uptime,
+			&service.Launched); err != nil {
 			return nil, bugLog.Error(err)
 		}
 		service.Uptime = fmt.Sprintf("https://uptime.chewedfeed.com/status/%s", service.Uptime)
