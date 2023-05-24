@@ -17,11 +17,13 @@ type CMS struct {
 }
 
 type Service struct {
+	ID          int
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	URL         string     `json:"url"`
 	LaunchDate  LaunchDate `json:"launchDate"`
 	Progress    int        `json:"progress"`
+	Progress2   float32    `json:"progress2"`
 	Icon        string     `json:"icon"`
 	FullDesc    string     `json:"fullDesc"`
 	Uptime      string     `json:"uptime"`
@@ -98,7 +100,8 @@ func (c CMS) getService(name string) (Service, error) {
 	defer db.Close(c.CTX)
 
 	var service Service
-	if err := db.QueryRow(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE search_name = $1", name).Scan(
+	if err := db.QueryRow(c.CTX, "SELECT id, name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE search_name = $1", name).Scan(
+		&service.ID,
 		&service.Name,
 		&service.Description,
 		&service.LaunchDate.Year,
@@ -113,7 +116,46 @@ func (c CMS) getService(name string) (Service, error) {
 	}
 
 	service.Uptime = fmt.Sprintf("https://uptime.chewedfeed.com/status/%s", service.Uptime)
+
+	prog, err := c.getServiceProgress(service.ID)
+	if err != nil {
+		return service, bugLog.Error(err)
+	}
+	service.Progress2 = prog
+
 	return service, nil
+}
+
+func (c CMS) getServiceProgress(id int) (float32, error) {
+	db, err := c.getDB()
+	if err != nil {
+		c.ErrorChannel <- bugLog.Error(err)
+		return 0, bugLog.Error(err)
+	}
+	defer db.Close(c.CTX)
+	rows, err := db.Query(c.CTX, "SELECT completed FROM launch_task WHERE service_id = $1", id)
+	if err != nil {
+		return 0, bugLog.Error(err)
+	}
+	totalRows := 0
+	completedRows := 0
+
+	defer rows.Close()
+	for rows.Next() {
+		var completed bool
+		if err := rows.Scan(&completed); err != nil {
+			return 0, bugLog.Error(err)
+		}
+		totalRows++
+		if completed {
+			completedRows++
+		}
+	}
+	if totalRows == 0 {
+		return 0, nil
+	}
+
+	return (float32(totalRows) / float32(completedRows)) * 100, nil
 }
 
 func (c CMS) AllowedOrigins() ([]string, error) {
