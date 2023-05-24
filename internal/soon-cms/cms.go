@@ -155,7 +155,7 @@ func (c CMS) getServiceProgress(id int) (float32, error) {
 		return 0, nil
 	}
 
-	return (float32(totalRows) / float32(completedRows)) * 100, nil
+	return (float32(completedRows) / float32(totalRows)) * 100, nil
 }
 
 func (c CMS) AllowedOrigins() ([]string, error) {
