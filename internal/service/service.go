@@ -89,6 +89,8 @@ func (s *Service) StartHTTP() {
 }
 
 func (s *Service) ValidateOrigin(r *http.Request, checkOrigin string) bool {
+	bugLog.Local().Infof("Origin checking: %s", checkOrigin)
+
 	services, err := cms.NewCMS(s.Config, s.ErrorChannel).AllowedOrigins()
 	if err != nil {
 		s.ErrorChannel <- bugLog.Error(err)
@@ -101,6 +103,5 @@ func (s *Service) ValidateOrigin(r *http.Request, checkOrigin string) bool {
 		}
 	}
 
-	bugLog.Local().Infof("Origin not allowed: %s", checkOrigin)
 	return false
 }
