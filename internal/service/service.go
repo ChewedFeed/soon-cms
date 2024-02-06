@@ -2,21 +2,18 @@ package service
 
 import (
 	"fmt"
-	ConfigBuilder "github.com/keloran/go-config"
-	"net/http"
-	"time"
-
-	cms "github.com/chewedfeed/soon-cms/internal/soon-cms"
-
-	"github.com/go-chi/chi/v5"
-
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
 	bugMiddleware "github.com/bugfixes/go-bugfixes/middleware"
+	cms "github.com/chewedfeed/soon-cms/internal/soon-cms"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httplog"
+	ConfigBuilder "github.com/keloran/go-config"
 	healthcheck "github.com/keloran/go-healthcheck"
 	probe "github.com/keloran/go-probe"
+	"net/http"
+	"time"
 )
 
 type Service struct {
@@ -51,22 +48,22 @@ func (s *Service) StartHTTP() {
 	}
 	allowedOrigins = append(allowedOrigins, services...)
 
-	c := cors.New(cors.Options{
+	c := cors.Options{
 		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-Token"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
+		AllowCredentials: false,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
-	})
+	}
 
 	r := chi.NewRouter()
+	r.Use(cors.Handler(c))
 
 	r.Use(middleware.Heartbeat("/ping"))
 
 	r.Route("/", func(r chi.Router) {
 		r.Use(middleware.RequestID)
-		r.Use(c.Handler)
 		r.Use(bugMiddleware.BugFixes)
 		r.Use(httplog.RequestLogger(logger))
 

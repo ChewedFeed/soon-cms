@@ -166,7 +166,7 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 	}
 	defer db.Close(c.CTX)
 
-	rows, err := db.Query(c.CTX, "SELECT url, alternatives FROM services")
+	rows, err := db.Query(c.CTX, "SELECT non_url, alternatives FROM services")
 	if err != nil {
 		return nil, bugLog.Error(err)
 	}
@@ -186,15 +186,11 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 			alts := strings.Split(*s.Alts, ",")
 			for _, alt := range alts {
 				if alt != "" {
-					origins = append(origins, fmt.Sprintf("https://%s", alt))
-					origins = append(origins, fmt.Sprintf("https://www.%s", alt))
+					origins = append(origins, fmt.Sprintf("https://%s", alt), fmt.Sprintf("https://www.%s", alt))
 				}
 			}
 		}
-		origins = append(origins, *s.URL)
-
-		www := strings.Replace(*s.URL, "https://", "https://www.", 1)
-		origins = append(origins, www)
+		origins = append(origins, fmt.Sprintf("https://%s", *s.URL), fmt.Sprintf("https://www.%s", *s.URL))
 	}
 
 	return origins, nil
