@@ -42,6 +42,8 @@ spec:
               value: "database/creds/chewedfeed_coming_soon-database-role"
             - name: RDS_HOSTNAME
               value: "db.chewed-k8s.net"
+            - name: RDS_DB
+              value: "comingsoon"
             - name: VAULT_HOST
               value: "vault.chewed-k8s.net"
             - name: VAULT_TOKEN
