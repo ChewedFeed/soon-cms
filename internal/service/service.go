@@ -59,11 +59,11 @@ func (s *Service) StartHTTP() {
 	}
 
 	r := chi.NewRouter()
-	r.Use(cors.Handler(c))
 
 	r.Use(middleware.Heartbeat("/ping"))
 
 	r.Route("/", func(r chi.Router) {
+		r.Use(cors.Handler(c))
 		r.Use(middleware.RequestID)
 		r.Use(bugMiddleware.BugFixes)
 		r.Use(httplog.RequestLogger(logger))
