@@ -168,7 +168,7 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 
 	rows, err := db.Query(c.CTX, "SELECT non_url, alternatives FROM services")
 	if err != nil {
-		return nil, bugLog.Error(err)
+		return nil, bugLog.Error(err, db.Config())
 	}
 	type service struct {
 		URL  *string

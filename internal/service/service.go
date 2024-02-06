@@ -49,6 +49,7 @@ func (s *Service) StartHTTP() {
 	allowedOrigins = append(allowedOrigins, services...)
 
 	c := cors.Options{
+		AllowOriginFunc:  s.ValidateOrigin,
 		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-Token"},
@@ -85,4 +86,21 @@ func (s *Service) StartHTTP() {
 	if err := server.ListenAndServe(); err != nil {
 		s.ErrorChannel <- bugLog.Errorf("port failed: %+v", err)
 	}
+}
+
+func (s *Service) ValidateOrigin(r *http.Request, checkOrigin string) bool {
+	services, err := cms.NewCMS(s.Config, s.ErrorChannel).AllowedOrigins()
+	if err != nil {
+		s.ErrorChannel <- bugLog.Error(err)
+		return false
+	}
+
+	for _, service := range services {
+		if service == checkOrigin {
+			return true
+		}
+	}
+
+	bugLog.Local().Infof("Origin not allowed: %s", checkOrigin)
+	return false
 }
