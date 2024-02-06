@@ -3,15 +3,15 @@ package retro
 import (
 	"context"
 	"fmt"
+	ConfigBuilder "github.com/keloran/go-config"
 	"strings"
 
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
-	"github.com/chewedfeed/soon-cms/internal/config"
 	pgx "github.com/jackc/pgx/v4"
 )
 
 type CMS struct {
-	Config       *config.Config
+	Config       *ConfigBuilder.Config
 	CTX          context.Context
 	ErrorChannel chan error
 }
@@ -35,7 +35,7 @@ type LaunchDate struct {
 	Day   int `json:"day"`
 }
 
-func NewCMS(config *config.Config, errChan chan error) *CMS {
+func NewCMS(config *ConfigBuilder.Config, errChan chan error) *CMS {
 	return &CMS{
 		Config:       config,
 		CTX:          context.Background(),

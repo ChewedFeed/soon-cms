@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	ConfigBuilder "github.com/keloran/go-config"
 	"net/http"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
 	bugMiddleware "github.com/bugfixes/go-bugfixes/middleware"
-	"github.com/chewedfeed/soon-cms/internal/config"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httplog"
@@ -20,7 +20,7 @@ import (
 )
 
 type Service struct {
-	Config       *config.Config
+	Config       *ConfigBuilder.Config
 	ErrorChannel chan error
 }
 
@@ -78,9 +78,9 @@ func (s *Service) StartHTTP() {
 	r.Get("/health", healthcheck.HTTP)
 	r.Get("/probe", probe.HTTP)
 
-	bugLog.Local().Infof("listening on %d\n", s.Config.Local.Port)
+	bugLog.Local().Infof("listening on %d\n", s.Config.Local.HTTPPort)
 	server := &http.Server{
-		Addr:              fmt.Sprintf(":%d", s.Config.Local.Port),
+		Addr:              fmt.Sprintf(":%d", s.Config.Local.HTTPPort),
 		Handler:           r,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
