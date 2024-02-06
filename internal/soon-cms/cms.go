@@ -185,8 +185,10 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 		if s.Alts != nil {
 			alts := strings.Split(*s.Alts, ",")
 			for _, alt := range alts {
-				origins = append(origins, fmt.Sprintf("https://%s", alt))
-				origins = append(origins, fmt.Sprintf("https://www.%s", alt))
+				if alt != "" {
+					origins = append(origins, fmt.Sprintf("https://%s", alt))
+					origins = append(origins, fmt.Sprintf("https://www.%s", alt))
+				}
 			}
 		}
 		origins = append(origins, *s.URL)
