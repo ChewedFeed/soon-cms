@@ -39,7 +39,7 @@ func (s *Service) StartHTTP() {
 		"https://www.chewedfeed.com",
 	}
 
-	if s.Config.Development {
+	if s.Config.Local.Development {
 		allowedOrigins = append(allowedOrigins, "http://*")
 	}
 	services, err := cms.NewCMS(s.Config, s.ErrorChannel).AllowedOrigins()
@@ -89,7 +89,9 @@ func (s *Service) StartHTTP() {
 }
 
 func (s *Service) ValidateOrigin(r *http.Request, checkOrigin string) bool {
-	bugLog.Local().Infof("Origin checking: %s", checkOrigin)
+	if s.Config.Local.Development {
+		return true
+	}
 
 	services, err := cms.NewCMS(s.Config, s.ErrorChannel).AllowedOrigins()
 	if err != nil {
@@ -103,5 +105,6 @@ func (s *Service) ValidateOrigin(r *http.Request, checkOrigin string) bool {
 		}
 	}
 
+	bugLog.Local().Infof("Origin checking failed: %s", checkOrigin)
 	return false
 }

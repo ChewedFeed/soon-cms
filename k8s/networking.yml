@@ -23,6 +23,6 @@ spec:
               service:
                 name: cms
                 port:
-                  number: 300
+                  number: 3001
             path: /
             pathType: Prefix

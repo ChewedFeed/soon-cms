@@ -44,6 +44,8 @@ spec:
               value: "db.chewed-k8s.net"
             - name: RDS_DB
               value: "comingsoon"
+            - name: HTTP_PORT
+              value: "3001"
             - name: VAULT_HOST
               value: "vault.chewed-k8s.net"
             - name: VAULT_TOKEN
