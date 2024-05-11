@@ -1,4 +1,8 @@
 function getSoon(site) {
+  if (showdown == null) {
+    return;
+  }
+
   var launchTime = new Date(2025, 0, 1, 23, 59); // Set launch: [year], [month], [day], [hour]...
   var raw = new XMLHttpRequest()
   raw.open('GET', 'https://cms.chewedfeed.com/service/' + site, false)
@@ -6,10 +10,13 @@ function getSoon(site) {
     if (raw.readyState === 4) {
       if (raw.status === 200 || raw.status !== 0) {
         var allText = raw.responseText;
+        if (allText === "") {
+          return;
+        }
         var json = JSON.parse(allText);
         var html = '';
         var year = json.launchDate.year
-        var month = json.launchDate.month
+        var month = json.launchDate.month - 1;
         var day = json.launchDate.day
         var newLaunch = new Date(year, month, day, 23, 59)
 

@@ -23,6 +23,7 @@ func jsonError(w http.ResponseWriter, err error) {
 func (c CMS) ServicesHandler(w http.ResponseWriter, r *http.Request) {
 	services, err := c.getServices()
 	if err != nil {
+		bugLog.Local().Infof("ServicesHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -37,6 +38,7 @@ func (c CMS) ServicesHandler(w http.ResponseWriter, r *http.Request) {
 func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 	service, err := c.getService(chi.URLParam(r, "service"))
 	if err != nil {
+		bugLog.Local().Infof("ServiceHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -51,6 +53,7 @@ func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadFile("script.js")
 	if err != nil {
+		bugLog.Local().Infof("ScriptHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -59,6 +62,7 @@ func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
+		bugLog.Local().Infof("ScriptHandler write: %v", err)
 		jsonError(w, err)
 		return
 	}
