@@ -3,7 +3,6 @@ package retro
 import (
 	"encoding/json"
 	bugLog "github.com/bugfixes/go-bugfixes/logs"
-	"github.com/go-chi/chi/v5"
 	"io/ioutil"
 	"net/http"
 )
@@ -36,7 +35,7 @@ func (c CMS) ServicesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
-	service, err := c.getService(chi.URLParam(r, "service"))
+	service, err := c.getService(r.PathValue("service"))
 	if err != nil {
 		bugLog.Infof("ServiceHandler: %v", err)
 		jsonError(w, err)
