@@ -6,7 +6,7 @@ import (
 	ConfigBuilder "github.com/keloran/go-config"
 	"strings"
 
-	bugLog "github.com/bugfixes/go-bugfixes/logs"
+	"github.com/bugfixes/go-bugfixes/logs"
 )
 
 type CMS struct {
@@ -47,17 +47,17 @@ func (c CMS) getServices() ([]Service, error) {
 
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
-		return services, bugLog.Error(err)
+		return services, logs.Error(err)
 	}
 	defer func() {
 		if err := db.Close(c.CTX); err != nil {
-			c.ErrorChannel <- bugLog.Error(err)
+			c.ErrorChannel <- logs.Error(err)
 		}
 	}()
 
 	rows, err := db.Query(c.CTX, "SELECT name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE started = true")
 	if err != nil {
-		return nil, bugLog.Error(err)
+		return nil, logs.Error(err)
 	}
 	defer rows.Close()
 
@@ -75,7 +75,7 @@ func (c CMS) getServices() ([]Service, error) {
 			&service.FullDesc,
 			&service.Uptime,
 			&service.Launched); err != nil {
-			return nil, bugLog.Error(err)
+			return nil, logs.Error(err)
 		}
 		service.Uptime = fmt.Sprintf("https://uptime.chewedfeed.com/status/%s", service.Uptime)
 		services = append(services, service)
@@ -89,11 +89,11 @@ func (c CMS) getService(name string) (Service, error) {
 
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
-		return service, bugLog.Error(err)
+		return service, logs.Error(err)
 	}
 	defer func() {
 		if err := db.Close(c.CTX); err != nil {
-			c.ErrorChannel <- bugLog.Error(err)
+			c.ErrorChannel <- logs.Error(err)
 		}
 	}()
 
@@ -109,14 +109,14 @@ func (c CMS) getService(name string) (Service, error) {
 		&service.Icon,
 		&service.FullDesc,
 		&service.Uptime); err != nil {
-		return Service{}, bugLog.Error(err)
+		return Service{}, logs.Error(err)
 	}
 
 	service.Uptime = fmt.Sprintf("https://uptime.chewedfeed.com/status/%s", service.Uptime)
 
 	prog, err := c.getServiceProgress(service.ID)
 	if err != nil {
-		return service, bugLog.Error(err)
+		return service, logs.Error(err)
 	}
 	service.Progress2 = prog
 
@@ -126,16 +126,16 @@ func (c CMS) getService(name string) (Service, error) {
 func (c CMS) getServiceProgress(id int) (float32, error) {
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
-		return 0, bugLog.Error(err)
+		return 0, logs.Error(err)
 	}
 	defer func() {
 		if err := db.Close(c.CTX); err != nil {
-			c.ErrorChannel <- bugLog.Error(err)
+			c.ErrorChannel <- logs.Error(err)
 		}
 	}()
 	rows, err := db.Query(c.CTX, "SELECT completed FROM launch_task WHERE service_id = $1", id)
 	if err != nil {
-		return 0, bugLog.Error(err)
+		return 0, logs.Error(err)
 	}
 	totalRows := 0
 	completedRows := 0
@@ -144,7 +144,7 @@ func (c CMS) getServiceProgress(id int) (float32, error) {
 	for rows.Next() {
 		var completed bool
 		if err := rows.Scan(&completed); err != nil {
-			return 0, bugLog.Error(err)
+			return 0, logs.Error(err)
 		}
 		totalRows++
 		if completed {
@@ -163,17 +163,17 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
-		return origins, bugLog.Error(err)
+		return origins, logs.Error(err)
 	}
 	defer func() {
 		if err := db.Close(c.CTX); err != nil {
-			c.ErrorChannel <- bugLog.Error(err)
+			c.ErrorChannel <- logs.Error(err)
 		}
 	}()
 
 	rows, err := db.Query(c.CTX, "SELECT non_url, alternatives FROM services")
 	if err != nil {
-		return nil, bugLog.Error(err)
+		return nil, logs.Error(err)
 	}
 	type service struct {
 		URL  *string
@@ -184,7 +184,7 @@ func (c CMS) AllowedOrigins() ([]string, error) {
 	for rows.Next() {
 		var s service
 		if err := rows.Scan(&s.URL, &s.Alts); err != nil {
-			return nil, bugLog.Error(err)
+			return nil, logs.Error(err)
 		}
 		if s.Alts != nil {
 			alts := strings.Split(*s.Alts, ",")

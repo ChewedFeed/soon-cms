@@ -2,7 +2,7 @@ package retro
 
 import (
 	"encoding/json"
-	bugLog "github.com/bugfixes/go-bugfixes/logs"
+	"github.com/bugfixes/go-bugfixes/logs"
 	"io/ioutil"
 	"net/http"
 )
@@ -15,14 +15,14 @@ func jsonError(w http.ResponseWriter, err error) {
 	}{
 		Error: err.Error(),
 	}); err != nil {
-		bugLog.Debugf("jsonError: %v", err)
+		logs.Debugf("jsonError: %v", err)
 	}
 }
 
 func (c CMS) ServicesHandler(w http.ResponseWriter, r *http.Request) {
 	services, err := c.getServices()
 	if err != nil {
-		bugLog.Infof("ServicesHandler: %v", err)
+		logs.Infof("ServicesHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -30,14 +30,14 @@ func (c CMS) ServicesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(services); err != nil {
-		bugLog.Debugf("ServicesHandler: %v", err)
+		logs.Debugf("ServicesHandler: %v", err)
 	}
 }
 
 func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 	service, err := c.getService(r.PathValue("service"))
 	if err != nil {
-		bugLog.Infof("ServiceHandler: %v", err)
+		logs.Infof("ServiceHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -45,14 +45,14 @@ func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(service); err != nil {
-		bugLog.Debugf("ServiceHandler: %v", err)
+		logs.Debugf("ServiceHandler: %v", err)
 	}
 }
 
 func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadFile("script.js")
 	if err != nil {
-		bugLog.Infof("ScriptHandler: %v", err)
+		logs.Infof("ScriptHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -61,7 +61,7 @@ func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
-		bugLog.Infof("ScriptHandler write: %v", err)
+		logs.Infof("ScriptHandler write: %v", err)
 		jsonError(w, err)
 		return
 	}
