@@ -1,114 +1,76 @@
 package service
 
 import (
-  "fmt"
-  bugLog "github.com/bugfixes/go-bugfixes/logs"
-  bugMiddleware "github.com/bugfixes/go-bugfixes/middleware"
-  cms "github.com/chewedfeed/soon-cms/internal/soon-cms"
-  "github.com/go-chi/chi/v5"
-  "github.com/go-chi/chi/v5/middleware"
-  "github.com/go-chi/cors"
-  "github.com/go-chi/httplog"
-  ConfigBuilder "github.com/keloran/go-config"
-  healthcheck "github.com/keloran/go-healthcheck"
-  probe "github.com/keloran/go-probe"
-  "net/http"
-  "strings"
-  "time"
+	"context"
+	"crypto/tls"
+	"fmt"
+	"github.com/bugfixes/go-bugfixes/logs"
+	"github.com/bugfixes/go-bugfixes/middleware"
+	cms "github.com/chewedfeed/soon-cms/internal/soon-cms"
+	ConfigBuilder "github.com/keloran/go-config"
+	"github.com/keloran/go-healthcheck"
+	"github.com/keloran/go-probe"
+	"net/http"
+	"strconv"
+	"time"
 )
 
 type Service struct {
-  Config       *ConfigBuilder.Config
-  ErrorChannel chan error
-  Origins      []string
+	Config  *ConfigBuilder.Config
+	Origins []string
+}
+
+func New(config *ConfigBuilder.Config) *Service {
+	return &Service{
+		Config: config,
+	}
 }
 
 func (s *Service) Start() error {
-  go s.StartHTTP()
-  return <-s.ErrorChannel
+	errChan := make(chan error)
+	go s.StartHTTP(errChan)
+	return <-errChan
 }
 
-func (s *Service) StartHTTP() {
-  bugLog.Local().Info("Starting CMS")
+func (s *Service) StartHTTP(errChan chan error) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/services", cms.NewCMS(s.Config, errChan).ServicesHandler)
+	mux.HandleFunc("/service/{service}", cms.NewCMS(s.Config, errChan).ServiceHandler)
+	mux.HandleFunc("/script", cms.NewCMS(s.Config, errChan).ScriptHandler)
+	mux.HandleFunc("/health", healthcheck.HTTP)
+	mux.HandleFunc("/probe", probe.HTTP)
 
-  logger := httplog.NewLogger("soon-cms", httplog.Options{
-    JSON: true,
-  })
+	mw := middleware.NewMiddleware(context.Background())
+	mw.AddMiddleware(middleware.SetupLogger(middleware.Error).Logger)
+	mw.AddMiddleware(middleware.RequestID)
+	mw.AddMiddleware(middleware.Recoverer)
+	mw.AddMiddleware(mw.CORS)
+	mw.AddAllowedMethods("GET", "OPTIONS")
+	mw.AddAllowedHeaders("Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-Token")
+	mw.AddAllowedOrigins("http://localhost:8080", "https://chewedfeed.com", "https://www.chewedfeed.com")
+	if s.Config.Local.Development {
+		mw.AddAllowedOrigins("*")
+	}
 
-  allowedOrigins := []string{
-    "http://localhost:8080",
-    "https://chewedfeed.com",
-    "https://www.chewedfeed.com",
-  }
+	port := s.Config.Local.HTTPPort
+	if s.Config.ProjectProperties["railway_port"].(string) != "" && s.Config.ProjectProperties["on_railway"].(bool) {
+		i, err := strconv.Atoi(s.Config.ProjectProperties["railway_port"].(string))
+		if err != nil {
+			_ = logs.Errorf("Failed to parse port: %v", err)
+			return
+		}
+		port = i
+	}
 
-  if s.Config.Local.Development {
-    allowedOrigins = append(allowedOrigins, "http://*")
-  }
-  services, err := cms.NewCMS(s.Config, s.ErrorChannel).AllowedOrigins()
-  if err != nil {
-    s.ErrorChannel <- bugLog.Error(err)
-  }
-  allowedOrigins = append(allowedOrigins, services...)
-  s.Origins = allowedOrigins
-
-  c := cors.Options{
-    AllowOriginFunc:  s.ValidateOrigin,
-    AllowedOrigins:   allowedOrigins,
-    AllowedMethods:   []string{"GET", "OPTIONS"},
-    AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-Token"},
-    ExposedHeaders:   []string{"Link"},
-    AllowCredentials: false,
-    MaxAge:           300, // Maximum value not ignored by any of major browsers
-  }
-
-  r := chi.NewRouter()
-
-  r.Use(middleware.Heartbeat("/ping"))
-
-  r.Route("/", func(r chi.Router) {
-    r.Use(cors.Handler(c))
-    r.Use(middleware.RequestID)
-    r.Use(bugMiddleware.BugFixes)
-    r.Use(httplog.RequestLogger(logger))
-
-    r.Get("/services", cms.NewCMS(s.Config, s.ErrorChannel).ServicesHandler)
-    r.Get("/service/{service}", cms.NewCMS(s.Config, s.ErrorChannel).ServiceHandler)
-    r.Get("/script", cms.NewCMS(s.Config, s.ErrorChannel).ScriptHandler)
-  })
-
-  r.Get("/health", healthcheck.HTTP)
-  r.Get("/probe", probe.HTTP)
-
-  bugLog.Local().Infof("listening on %d\n", s.Config.Local.HTTPPort)
-  server := &http.Server{
-    Addr:              fmt.Sprintf(":%d", s.Config.Local.HTTPPort),
-    Handler:           r,
-    ReadHeaderTimeout: 5 * time.Second,
-  }
-
-  if err := server.ListenAndServe(); err != nil {
-    s.ErrorChannel <- bugLog.Errorf("port failed: %+v", err)
-  }
-}
-
-func (s *Service) ValidateOrigin(r *http.Request, checkOrigin string) bool {
-  //if s.Config.Local.Development {
-  //	return true
-  //}
-
-  for _, service := range s.Origins {
-    serviceStrip := strings.ReplaceAll(service, "https://", "")
-    checkStrip := strings.ReplaceAll(checkOrigin, "https://", "")
-    servicePortString := strings.Split(serviceStrip, ":")[0]
-    checkPortString := strings.Split(checkStrip, ":")[0]
-
-    check := strings.Contains(servicePortString, checkPortString)
-
-    if check == true {
-      return true
-    }
-  }
-
-  bugLog.Local().Infof("Origin checking failed: %s", checkOrigin)
-  return false
+	logs.Logf("Starting HTTP on %d", s.Config.Local.HTTPPort)
+	server := &http.Server{
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           mw.Handler(mux),
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       10 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		TLSNextProto:      make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+	}
+	errChan <- server.ListenAndServe()
 }

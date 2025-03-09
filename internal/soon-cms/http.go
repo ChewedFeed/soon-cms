@@ -16,14 +16,14 @@ func jsonError(w http.ResponseWriter, err error) {
 	}{
 		Error: err.Error(),
 	}); err != nil {
-		bugLog.Local().Debugf("jsonError: %v", err)
+		bugLog.Debugf("jsonError: %v", err)
 	}
 }
 
 func (c CMS) ServicesHandler(w http.ResponseWriter, r *http.Request) {
 	services, err := c.getServices()
 	if err != nil {
-		bugLog.Local().Infof("ServicesHandler: %v", err)
+		bugLog.Infof("ServicesHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -31,14 +31,14 @@ func (c CMS) ServicesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(services); err != nil {
-		bugLog.Local().Debugf("ServicesHandler: %v", err)
+		bugLog.Debugf("ServicesHandler: %v", err)
 	}
 }
 
 func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 	service, err := c.getService(chi.URLParam(r, "service"))
 	if err != nil {
-		bugLog.Local().Infof("ServiceHandler: %v", err)
+		bugLog.Infof("ServiceHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -46,14 +46,14 @@ func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(service); err != nil {
-		bugLog.Local().Debugf("ServiceHandler: %v", err)
+		bugLog.Debugf("ServiceHandler: %v", err)
 	}
 }
 
 func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadFile("script.js")
 	if err != nil {
-		bugLog.Local().Infof("ScriptHandler: %v", err)
+		bugLog.Infof("ScriptHandler: %v", err)
 		jsonError(w, err)
 		return
 	}
@@ -62,7 +62,7 @@ func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
-		bugLog.Local().Infof("ScriptHandler write: %v", err)
+		bugLog.Infof("ScriptHandler write: %v", err)
 		jsonError(w, err)
 		return
 	}
