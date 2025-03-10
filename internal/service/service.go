@@ -47,10 +47,7 @@ func (s *Service) StartHTTP(errChan chan error) {
 	mw.AddMiddleware(mw.CORS)
 	mw.AddAllowedMethods("GET", "OPTIONS")
 	mw.AddAllowedHeaders("Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-Token")
-	mw.AddAllowedOrigins("http://localhost:8080", "https://chewedfeed.com", "https://www.chewedfeed.com")
-	if s.Config.Local.Development {
-		mw.AddAllowedOrigins("*")
-	}
+	mw.AddAllowedOrigins("*", "https://chewedfeed.com", "https://www.chewedfeed.com")
 
 	port := s.Config.Local.HTTPPort
 	if s.Config.ProjectProperties["railway_port"].(string) != "" && s.Config.ProjectProperties["on_railway"].(bool) {
