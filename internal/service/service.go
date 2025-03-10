@@ -34,11 +34,11 @@ func (s *Service) Start() error {
 
 func (s *Service) StartHTTP(errChan chan error) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/services", cms.NewCMS(s.Config, errChan).ServicesHandler)
-	mux.HandleFunc("/service/{service}", cms.NewCMS(s.Config, errChan).ServiceHandler)
-	mux.HandleFunc("/script", cms.NewCMS(s.Config, errChan).ScriptHandler)
-	mux.HandleFunc("/health", healthcheck.HTTP)
-	mux.HandleFunc("/probe", probe.HTTP)
+	mux.HandleFunc("GET /services", cms.NewCMS(s.Config, errChan).ServicesHandler)
+	mux.HandleFunc("GET /service/{service}", cms.NewCMS(s.Config, errChan).ServiceHandler)
+	mux.HandleFunc("GET /script", cms.NewCMS(s.Config, errChan).ScriptHandler)
+	mux.HandleFunc("GET /health", healthcheck.HTTP)
+	mux.HandleFunc("GET /probe", probe.HTTP)
 
 	mw := middleware.NewMiddleware(context.Background())
 	mw.AddMiddleware(middleware.SetupLogger(middleware.Error).Logger)
