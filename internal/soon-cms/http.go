@@ -126,14 +126,23 @@ func (c CMS) DeleteLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (c CMS) CreateRoadmapHandler(w http.ResponseWriter, r *http.Request) {
-	var req CreateRoadmapRequest
+func (c CMS) ListMilestonesHandler(w http.ResponseWriter, r *http.Request) {
+	milestones, err := c.getMilestones(r.PathValue("service"))
+	if err != nil {
+		jsonError(w, err)
+		return
+	}
+	jsonResponse(w, http.StatusOK, milestones)
+}
+
+func (c CMS) CreateMilestoneHandler(w http.ResponseWriter, r *http.Request) {
+	var req CreateMilestoneRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonError(w, err)
 		return
 	}
 
-	item, err := c.createRoadmapItem(r.PathValue("service"), req)
+	item, err := c.createMilestone(r.PathValue("service"), req)
 	if err != nil {
 		jsonError(w, err)
 		return
@@ -141,20 +150,20 @@ func (c CMS) CreateRoadmapHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, http.StatusCreated, item)
 }
 
-func (c CMS) UpdateRoadmapHandler(w http.ResponseWriter, r *http.Request) {
+func (c CMS) UpdateMilestoneHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		jsonError(w, err)
 		return
 	}
 
-	var req UpdateRoadmapRequest
+	var req UpdateMilestoneRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonError(w, err)
 		return
 	}
 
-	item, err := c.updateRoadmapItem(id, req)
+	item, err := c.updateMilestone(id, req)
 	if err != nil {
 		jsonError(w, err)
 		return
@@ -162,77 +171,14 @@ func (c CMS) UpdateRoadmapHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, http.StatusOK, item)
 }
 
-func (c CMS) DeleteRoadmapHandler(w http.ResponseWriter, r *http.Request) {
+func (c CMS) DeleteMilestoneHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		jsonError(w, err)
 		return
 	}
 
-	if err := c.deleteRoadmapItem(id); err != nil {
-		jsonError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (c CMS) ListTasksHandler(w http.ResponseWriter, r *http.Request) {
-	tasks, err := c.getLaunchTasks(r.PathValue("service"))
-	if err != nil {
-		jsonError(w, err)
-		return
-	}
-	jsonResponse(w, http.StatusOK, tasks)
-}
-
-func (c CMS) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Completed bool `json:"completed"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, err)
-		return
-	}
-
-	task, err := c.createLaunchTask(r.PathValue("service"), req.Completed)
-	if err != nil {
-		jsonError(w, err)
-		return
-	}
-	jsonResponse(w, http.StatusCreated, task)
-}
-
-func (c CMS) UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		jsonError(w, err)
-		return
-	}
-
-	var req struct {
-		Completed bool `json:"completed"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, err)
-		return
-	}
-
-	task, err := c.updateLaunchTask(id, req.Completed)
-	if err != nil {
-		jsonError(w, err)
-		return
-	}
-	jsonResponse(w, http.StatusOK, task)
-}
-
-func (c CMS) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		jsonError(w, err)
-		return
-	}
-
-	if err := c.deleteLaunchTask(id); err != nil {
+	if err := c.deleteMilestone(id); err != nil {
 		jsonError(w, err)
 		return
 	}

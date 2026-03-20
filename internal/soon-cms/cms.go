@@ -18,20 +18,20 @@ type CMS struct {
 }
 
 type Service struct {
-	ID          int            `json:"-"`
-	Name        string         `json:"name"`
-	SearchName  string         `json:"searchName"`
-	Description string         `json:"description"`
-	URL         string         `json:"url"`
-	LaunchDate  LaunchDate     `json:"launchDate"`
-	Progress    int            `json:"progress"`
-	Progress2   float32        `json:"progress2"`
-	Icon        string         `json:"icon"`
-	FullDesc    string         `json:"fullDesc"`
-	Uptime      string         `json:"uptime"`
-	Launched    bool           `json:"launched"`
-	Links       []ProjectLink  `json:"links,omitempty"`
-	Roadmap     []RoadmapItem  `json:"roadmap,omitempty"`
+	ID          int           `json:"-"`
+	Name        string        `json:"name"`
+	SearchName  string        `json:"searchName"`
+	Description string        `json:"description"`
+	URL         string        `json:"url"`
+	LaunchDate  LaunchDate    `json:"launchDate"`
+	Progress    int           `json:"progress"`
+	Progress2   float32       `json:"progress2"`
+	Icon        string        `json:"icon"`
+	FullDesc    string        `json:"fullDesc"`
+	Uptime      string        `json:"uptime"`
+	Launched    bool          `json:"launched"`
+	Links       []ProjectLink `json:"links,omitempty"`
+	Milestones  []Milestone   `json:"milestones,omitempty"`
 }
 
 type LaunchDate struct {
@@ -47,19 +47,16 @@ type ProjectLink struct {
 	Label    string `json:"label,omitempty"`
 }
 
-type RoadmapItem struct {
-	ID          int     `json:"id,omitempty"`
-	Name        string  `json:"name"`
-	TargetDate  *string `json:"targetDate,omitempty"`
-	ReleaseDate *string `json:"releaseDate,omitempty"`
-	Completed   bool    `json:"completed"`
-	SortOrder   int     `json:"sortOrder"`
-}
-
-type LaunchTask struct {
-	ID        int  `json:"id,omitempty"`
-	ServiceID int  `json:"serviceId"`
-	Completed bool `json:"completed"`
+type Milestone struct {
+	ID            int     `json:"id,omitempty"`
+	ServiceID     int     `json:"serviceId,omitempty"`
+	Title         string  `json:"title"`
+	Description   string  `json:"description,omitempty"`
+	Category      string  `json:"category"`
+	Status        string  `json:"status"`
+	TargetDate    *string `json:"targetDate,omitempty"`
+	CompletedDate *string `json:"completedDate,omitempty"`
+	SortOrder     int     `json:"sortOrder"`
 }
 
 type CreateServiceRequest struct {
@@ -78,19 +75,24 @@ type CreateLinkRequest struct {
 	Label    string `json:"label"`
 }
 
-type CreateRoadmapRequest struct {
-	Name       string  `json:"name"`
-	TargetDate *string `json:"targetDate"`
-	Completed  bool    `json:"completed"`
-	SortOrder  int     `json:"sortOrder"`
+type CreateMilestoneRequest struct {
+	Title         string  `json:"title"`
+	Description   string  `json:"description"`
+	Category      string  `json:"category"`
+	Status        string  `json:"status"`
+	TargetDate    *string `json:"targetDate"`
+	CompletedDate *string `json:"completedDate"`
+	SortOrder     int     `json:"sortOrder"`
 }
 
-type UpdateRoadmapRequest struct {
-	Name        *string `json:"name,omitempty"`
-	TargetDate  *string `json:"targetDate,omitempty"`
-	ReleaseDate *string `json:"releaseDate,omitempty"`
-	Completed   *bool   `json:"completed,omitempty"`
-	SortOrder   *int    `json:"sortOrder,omitempty"`
+type UpdateMilestoneRequest struct {
+	Title         *string `json:"title,omitempty"`
+	Description   *string `json:"description,omitempty"`
+	Category      *string `json:"category,omitempty"`
+	Status        *string `json:"status,omitempty"`
+	TargetDate    *string `json:"targetDate,omitempty"`
+	CompletedDate *string `json:"completedDate,omitempty"`
+	SortOrder     *int    `json:"sortOrder,omitempty"`
 }
 
 func NewCMS(config *ConfigBuilder.Config, flags *flagsService.Client, errChan chan error) *CMS {
@@ -100,6 +102,27 @@ func NewCMS(config *ConfigBuilder.Config, flags *flagsService.Client, errChan ch
 		CTX:          context.Background(),
 		ErrorChannel: errChan,
 	}
+}
+
+func calculateProgressFromStatuses(statuses []string) float32 {
+	totalRows := 0
+	completedRows := 0
+
+	for _, status := range statuses {
+		if status == "cancelled" {
+			continue
+		}
+		totalRows++
+		if status == "completed" {
+			completedRows++
+		}
+	}
+
+	if totalRows == 0 {
+		return 0
+	}
+
+	return (float32(completedRows) / float32(totalRows)) * 100
 }
 
 func (c CMS) getServices() ([]Service, error) {
@@ -197,11 +220,11 @@ func (c CMS) getService(name string) (Service, error) {
 	}
 	service.Links = links
 
-	roadmap, err := c.getServiceRoadmap(service.ID)
+	milestones, err := c.getServiceMilestones(service.ID)
 	if err != nil {
 		return service, logs.Error(err)
 	}
-	service.Roadmap = roadmap
+	service.Milestones = milestones
 
 	return service, nil
 }
@@ -216,29 +239,21 @@ func (c CMS) getServiceProgress(id int) (float32, error) {
 			c.ErrorChannel <- logs.Error(err)
 		}
 	}()
-	rows, err := db.Query(c.CTX, "SELECT completed FROM launch_task WHERE service_id = $1", id)
+	rows, err := db.Query(c.CTX, "SELECT status FROM project_milestones WHERE service_id = $1", id)
 	if err != nil {
 		return 0, logs.Error(err)
 	}
-	totalRows := 0
-	completedRows := 0
-
+	statuses := make([]string, 0)
 	defer rows.Close()
 	for rows.Next() {
-		var completed bool
-		if err := rows.Scan(&completed); err != nil {
+		var status string
+		if err := rows.Scan(&status); err != nil {
 			return 0, logs.Error(err)
 		}
-		totalRows++
-		if completed {
-			completedRows++
-		}
-	}
-	if totalRows == 0 {
-		return 0, nil
+		statuses = append(statuses, status)
 	}
 
-	return (float32(completedRows) / float32(totalRows)) * 100, nil
+	return calculateProgressFromStatuses(statuses), nil
 }
 
 func (c CMS) getServiceLinks(serviceID int) ([]ProjectLink, error) {
@@ -270,7 +285,7 @@ func (c CMS) getServiceLinks(serviceID int) ([]ProjectLink, error) {
 	return links, nil
 }
 
-func (c CMS) getServiceRoadmap(serviceID int) ([]RoadmapItem, error) {
+func (c CMS) getServiceMilestones(serviceID int) ([]Milestone, error) {
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
 		return nil, logs.Error(err)
@@ -281,22 +296,25 @@ func (c CMS) getServiceRoadmap(serviceID int) ([]RoadmapItem, error) {
 		}
 	}()
 
-	rows, err := db.Query(c.CTX, "SELECT id, name, target_date::text, release_date::text, completed, sort_order FROM project_roadmap WHERE service_id = $1 ORDER BY sort_order", serviceID)
+	rows, err := db.Query(c.CTX, `SELECT id, service_id, title, COALESCE(description, ''), category, status, target_date::text, completed_date::text, sort_order
+		FROM project_milestones
+		WHERE service_id = $1
+		ORDER BY sort_order, id`, serviceID)
 	if err != nil {
 		return nil, logs.Error(err)
 	}
 	defer rows.Close()
 
-	var roadmap []RoadmapItem
+	var milestones []Milestone
 	for rows.Next() {
-		var item RoadmapItem
-		if err := rows.Scan(&item.ID, &item.Name, &item.TargetDate, &item.ReleaseDate, &item.Completed, &item.SortOrder); err != nil {
+		var item Milestone
+		if err := rows.Scan(&item.ID, &item.ServiceID, &item.Title, &item.Description, &item.Category, &item.Status, &item.TargetDate, &item.CompletedDate, &item.SortOrder); err != nil {
 			return nil, logs.Error(err)
 		}
-		roadmap = append(roadmap, item)
+		milestones = append(milestones, item)
 	}
 
-	return roadmap, nil
+	return milestones, nil
 }
 
 // Write operations
@@ -417,78 +435,7 @@ func (c CMS) deleteLink(linkID int) error {
 	return nil
 }
 
-func (c CMS) createRoadmapItem(serviceName string, req CreateRoadmapRequest) (RoadmapItem, error) {
-	db, err := c.Config.Database.GetPGXClient(c.CTX)
-	if err != nil {
-		return RoadmapItem{}, logs.Error(err)
-	}
-	defer func() {
-		if err := db.Close(c.CTX); err != nil {
-			c.ErrorChannel <- logs.Error(err)
-		}
-	}()
-
-	var item RoadmapItem
-	err = db.QueryRow(c.CTX,
-		`INSERT INTO project_roadmap (service_id, name, target_date, completed, sort_order)
-		 SELECT id, $2, $3::date, $4, $5 FROM services WHERE search_name = $1
-		 RETURNING id, name, target_date::text, release_date::text, completed, sort_order`,
-		serviceName, req.Name, req.TargetDate, req.Completed, req.SortOrder,
-	).Scan(&item.ID, &item.Name, &item.TargetDate, &item.ReleaseDate, &item.Completed, &item.SortOrder)
-	if err != nil {
-		return RoadmapItem{}, logs.Error(err)
-	}
-	return item, nil
-}
-
-func (c CMS) updateRoadmapItem(itemID int, req UpdateRoadmapRequest) (RoadmapItem, error) {
-	db, err := c.Config.Database.GetPGXClient(c.CTX)
-	if err != nil {
-		return RoadmapItem{}, logs.Error(err)
-	}
-	defer func() {
-		if err := db.Close(c.CTX); err != nil {
-			c.ErrorChannel <- logs.Error(err)
-		}
-	}()
-
-	var item RoadmapItem
-	err = db.QueryRow(c.CTX,
-		`UPDATE project_roadmap SET
-		 name = COALESCE($2, name),
-		 target_date = COALESCE($3::date, target_date),
-		 release_date = COALESCE($4::date, release_date),
-		 completed = COALESCE($5, completed),
-		 sort_order = COALESCE($6, sort_order)
-		 WHERE id = $1
-		 RETURNING id, name, target_date::text, release_date::text, completed, sort_order`,
-		itemID, req.Name, req.TargetDate, req.ReleaseDate, req.Completed, req.SortOrder,
-	).Scan(&item.ID, &item.Name, &item.TargetDate, &item.ReleaseDate, &item.Completed, &item.SortOrder)
-	if err != nil {
-		return RoadmapItem{}, logs.Error(err)
-	}
-	return item, nil
-}
-
-func (c CMS) deleteRoadmapItem(itemID int) error {
-	db, err := c.Config.Database.GetPGXClient(c.CTX)
-	if err != nil {
-		return logs.Error(err)
-	}
-	defer func() {
-		if err := db.Close(c.CTX); err != nil {
-			c.ErrorChannel <- logs.Error(err)
-		}
-	}()
-
-	_, err = db.Exec(c.CTX, "DELETE FROM project_roadmap WHERE id = $1", itemID)
-	if err != nil {
-		return logs.Error(err)
-	}
-	return nil
-}
-
-func (c CMS) getLaunchTasks(serviceName string) ([]LaunchTask, error) {
+func (c CMS) getMilestones(serviceName string) ([]Milestone, error) {
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
 		return nil, logs.Error(err)
@@ -499,30 +446,31 @@ func (c CMS) getLaunchTasks(serviceName string) ([]LaunchTask, error) {
 		}
 	}()
 
-	rows, err := db.Query(c.CTX,
-		`SELECT lt.launch_task_id, lt.service_id, lt.completed FROM launch_task lt
-		 JOIN services s ON s.id = lt.service_id
-		 WHERE s.search_name = $1`, serviceName)
+	rows, err := db.Query(c.CTX, `SELECT pm.id, pm.service_id, pm.title, COALESCE(pm.description, ''), pm.category, pm.status, pm.target_date::text, pm.completed_date::text, pm.sort_order
+		FROM project_milestones pm
+		JOIN services s ON s.id = pm.service_id
+		WHERE s.search_name = $1
+		ORDER BY pm.sort_order, pm.id`, serviceName)
 	if err != nil {
 		return nil, logs.Error(err)
 	}
 	defer rows.Close()
 
-	var tasks []LaunchTask
+	var milestones []Milestone
 	for rows.Next() {
-		var t LaunchTask
-		if err := rows.Scan(&t.ID, &t.ServiceID, &t.Completed); err != nil {
+		var item Milestone
+		if err := rows.Scan(&item.ID, &item.ServiceID, &item.Title, &item.Description, &item.Category, &item.Status, &item.TargetDate, &item.CompletedDate, &item.SortOrder); err != nil {
 			return nil, logs.Error(err)
 		}
-		tasks = append(tasks, t)
+		milestones = append(milestones, item)
 	}
-	return tasks, nil
+	return milestones, nil
 }
 
-func (c CMS) createLaunchTask(serviceName string, completed bool) (LaunchTask, error) {
+func (c CMS) createMilestone(serviceName string, req CreateMilestoneRequest) (Milestone, error) {
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
-		return LaunchTask{}, logs.Error(err)
+		return Milestone{}, logs.Error(err)
 	}
 	defer func() {
 		if err := db.Close(c.CTX); err != nil {
@@ -530,23 +478,23 @@ func (c CMS) createLaunchTask(serviceName string, completed bool) (LaunchTask, e
 		}
 	}()
 
-	var t LaunchTask
+	var item Milestone
 	err = db.QueryRow(c.CTX,
-		`INSERT INTO launch_task (service_id, completed)
-		 SELECT id, $2 FROM services WHERE search_name = $1
-		 RETURNING launch_task_id, service_id, completed`,
-		serviceName, completed,
-	).Scan(&t.ID, &t.ServiceID, &t.Completed)
+		`INSERT INTO project_milestones (service_id, title, description, category, status, target_date, completed_date, sort_order)
+		 SELECT id, $2, NULLIF($3, ''), $4, $5, $6::date, $7::date, $8 FROM services WHERE search_name = $1
+		 RETURNING id, service_id, title, COALESCE(description, ''), category, status, target_date::text, completed_date::text, sort_order`,
+		serviceName, req.Title, req.Description, req.Category, req.Status, req.TargetDate, req.CompletedDate, req.SortOrder,
+	).Scan(&item.ID, &item.ServiceID, &item.Title, &item.Description, &item.Category, &item.Status, &item.TargetDate, &item.CompletedDate, &item.SortOrder)
 	if err != nil {
-		return LaunchTask{}, logs.Error(err)
+		return Milestone{}, logs.Error(err)
 	}
-	return t, nil
+	return item, nil
 }
 
-func (c CMS) updateLaunchTask(taskID int, completed bool) (LaunchTask, error) {
+func (c CMS) updateMilestone(itemID int, req UpdateMilestoneRequest) (Milestone, error) {
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
-		return LaunchTask{}, logs.Error(err)
+		return Milestone{}, logs.Error(err)
 	}
 	defer func() {
 		if err := db.Close(c.CTX); err != nil {
@@ -554,19 +502,28 @@ func (c CMS) updateLaunchTask(taskID int, completed bool) (LaunchTask, error) {
 		}
 	}()
 
-	var t LaunchTask
+	var item Milestone
 	err = db.QueryRow(c.CTX,
-		`UPDATE launch_task SET completed = $2 WHERE launch_task_id = $1
-		 RETURNING launch_task_id, service_id, completed`,
-		taskID, completed,
-	).Scan(&t.ID, &t.ServiceID, &t.Completed)
+		`UPDATE project_milestones SET
+		 title = COALESCE($2, title),
+		 description = COALESCE(NULLIF($3, ''), description),
+		 category = COALESCE($4, category),
+		 status = COALESCE($5, status),
+		 target_date = COALESCE($6::date, target_date),
+		 completed_date = COALESCE($7::date, completed_date),
+		 sort_order = COALESCE($8, sort_order),
+		 updated_at = NOW()
+		 WHERE id = $1
+		 RETURNING id, service_id, title, COALESCE(description, ''), category, status, target_date::text, completed_date::text, sort_order`,
+		itemID, req.Title, req.Description, req.Category, req.Status, req.TargetDate, req.CompletedDate, req.SortOrder,
+	).Scan(&item.ID, &item.ServiceID, &item.Title, &item.Description, &item.Category, &item.Status, &item.TargetDate, &item.CompletedDate, &item.SortOrder)
 	if err != nil {
-		return LaunchTask{}, logs.Error(err)
+		return Milestone{}, logs.Error(err)
 	}
-	return t, nil
+	return item, nil
 }
 
-func (c CMS) deleteLaunchTask(taskID int) error {
+func (c CMS) deleteMilestone(itemID int) error {
 	db, err := c.Config.Database.GetPGXClient(c.CTX)
 	if err != nil {
 		return logs.Error(err)
@@ -577,7 +534,7 @@ func (c CMS) deleteLaunchTask(taskID int) error {
 		}
 	}()
 
-	_, err = db.Exec(c.CTX, "DELETE FROM launch_task WHERE launch_task_id = $1", taskID)
+	_, err = db.Exec(c.CTX, "DELETE FROM project_milestones WHERE id = $1", itemID)
 	if err != nil {
 		return logs.Error(err)
 	}

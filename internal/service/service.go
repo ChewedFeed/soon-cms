@@ -59,16 +59,11 @@ func (s *Service) StartHTTP(errChan chan error) {
 	mux.HandleFunc("POST /service/{service}/links", a.RequireAuth(c.CreateLinkHandler))
 	mux.HandleFunc("DELETE /service/{service}/links/{id}", a.RequireAuth(c.DeleteLinkHandler))
 
-	// Protected write endpoints - roadmap
-	mux.HandleFunc("POST /service/{service}/roadmap", a.RequireAuth(c.CreateRoadmapHandler))
-	mux.HandleFunc("PUT /service/{service}/roadmap/{id}", a.RequireAuth(c.UpdateRoadmapHandler))
-	mux.HandleFunc("DELETE /service/{service}/roadmap/{id}", a.RequireAuth(c.DeleteRoadmapHandler))
-
-	// Protected write endpoints - launch tasks
-	mux.HandleFunc("GET /service/{service}/tasks", c.ListTasksHandler)
-	mux.HandleFunc("POST /service/{service}/tasks", a.RequireAuth(c.CreateTaskHandler))
-	mux.HandleFunc("PUT /service/{service}/tasks/{id}", a.RequireAuth(c.UpdateTaskHandler))
-	mux.HandleFunc("DELETE /service/{service}/tasks/{id}", a.RequireAuth(c.DeleteTaskHandler))
+	// Milestones
+	mux.HandleFunc("GET /service/{service}/milestones", c.ListMilestonesHandler)
+	mux.HandleFunc("POST /service/{service}/milestones", a.RequireAuth(c.CreateMilestoneHandler))
+	mux.HandleFunc("PUT /service/{service}/milestones/{id}", a.RequireAuth(c.UpdateMilestoneHandler))
+	mux.HandleFunc("DELETE /service/{service}/milestones/{id}", a.RequireAuth(c.DeleteMilestoneHandler))
 
 	mw := middleware.NewMiddleware()
 	mw.AddMiddleware(middleware.SetupLogger(middleware.Error).Logger)
