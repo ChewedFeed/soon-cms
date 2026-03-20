@@ -2,9 +2,10 @@ package retro
 
 import (
 	"encoding/json"
-	"github.com/bugfixes/go-bugfixes/logs"
-	"io/ioutil"
 	"net/http"
+	"os"
+
+	"github.com/bugfixes/go-bugfixes/logs"
 )
 
 func jsonError(w http.ResponseWriter, err error) {
@@ -50,7 +51,7 @@ func (c CMS) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c CMS) ScriptHandler(w http.ResponseWriter, r *http.Request) {
-	b, err := ioutil.ReadFile("script.js")
+	b, err := os.ReadFile("script.js")
 	if err != nil {
 		logs.Infof("ScriptHandler: %v", err)
 		jsonError(w, err)

@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS launch_task;
+DROP TABLE IF EXISTS services;
