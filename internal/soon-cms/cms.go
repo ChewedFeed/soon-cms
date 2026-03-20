@@ -20,6 +20,7 @@ type CMS struct {
 type Service struct {
 	ID          int            `json:"-"`
 	Name        string         `json:"name"`
+	SearchName  string         `json:"searchName"`
 	Description string         `json:"description"`
 	URL         string         `json:"url"`
 	LaunchDate  LaunchDate     `json:"launchDate"`
@@ -114,7 +115,7 @@ func (c CMS) getServices() ([]Service, error) {
 		}
 	}()
 
-	rows, err := db.Query(c.CTX, "SELECT id, name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE started = true")
+	rows, err := db.Query(c.CTX, "SELECT id, name, search_name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE started = true")
 	if err != nil {
 		return nil, logs.Error(err)
 	}
@@ -125,6 +126,7 @@ func (c CMS) getServices() ([]Service, error) {
 		if err := rows.Scan(
 			&service.ID,
 			&service.Name,
+			&service.SearchName,
 			&service.Description,
 			&service.LaunchDate.Year,
 			&service.LaunchDate.Month,
@@ -165,9 +167,10 @@ func (c CMS) getService(name string) (Service, error) {
 		}
 	}()
 
-	if err := db.QueryRow(c.CTX, "SELECT id, name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE search_name = $1", name).Scan(
+	if err := db.QueryRow(c.CTX, "SELECT id, name, search_name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE search_name = $1", name).Scan(
 		&service.ID,
 		&service.Name,
+		&service.SearchName,
 		&service.Description,
 		&service.LaunchDate.Year,
 		&service.LaunchDate.Month,
