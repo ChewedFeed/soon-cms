@@ -1,28 +1,30 @@
 package service
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/bugfixes/go-bugfixes/logs"
-	"github.com/bugfixes/go-bugfixes/middleware"
-	cms "github.com/chewedfeed/soon-cms/internal/soon-cms"
-	ConfigBuilder "github.com/keloran/go-config"
-	"github.com/keloran/go-healthcheck"
-	"github.com/keloran/go-probe"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/bugfixes/go-bugfixes/logs"
+	"github.com/bugfixes/go-bugfixes/middleware"
+	cms "github.com/chewedfeed/soon-cms/internal/soon-cms"
+	flagsService "github.com/flags-gg/go-flags"
+	ConfigBuilder "github.com/keloran/go-config"
+	"github.com/keloran/go-healthcheck"
+	"github.com/keloran/go-probe"
 )
 
 type Service struct {
-	Config  *ConfigBuilder.Config
-	Origins []string
+	Config *ConfigBuilder.Config
+	Flags  *flagsService.Client
 }
 
-func New(config *ConfigBuilder.Config) *Service {
+func New(config *ConfigBuilder.Config, flags *flagsService.Client) *Service {
 	return &Service{
 		Config: config,
+		Flags:  flags,
 	}
 }
 
@@ -34,13 +36,14 @@ func (s *Service) Start() error {
 
 func (s *Service) StartHTTP(errChan chan error) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /services", cms.NewCMS(s.Config, errChan).ServicesHandler)
-	mux.HandleFunc("GET /service/{service}", cms.NewCMS(s.Config, errChan).ServiceHandler)
-	mux.HandleFunc("GET /script", cms.NewCMS(s.Config, errChan).ScriptHandler)
+	c := cms.NewCMS(s.Config, s.Flags, errChan)
+	mux.HandleFunc("GET /services", c.ServicesHandler)
+	mux.HandleFunc("GET /service/{service}", c.ServiceHandler)
+	mux.HandleFunc("GET /script", c.ScriptHandler)
 	mux.HandleFunc("GET /health", healthcheck.HTTP)
 	mux.HandleFunc("GET /probe", probe.HTTP)
 
-	mw := middleware.NewMiddleware(context.Background())
+	mw := middleware.NewMiddleware()
 	mw.AddMiddleware(middleware.SetupLogger(middleware.Error).Logger)
 	mw.AddMiddleware(middleware.RequestID)
 	mw.AddMiddleware(middleware.Recoverer)
@@ -59,7 +62,7 @@ func (s *Service) StartHTTP(errChan chan error) {
 		port = i
 	}
 
-	logs.Logf("Starting HTTP on %d", s.Config.Local.HTTPPort)
+	logs.Logf("Starting HTTP on %d", port)
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", port),
 		Handler:           mw.Handler(mux),
