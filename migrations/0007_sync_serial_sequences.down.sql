@@ -1,0 +1,1 @@
+-- No-op. Sequence resync is safe and does not need rollback.
