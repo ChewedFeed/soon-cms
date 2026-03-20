@@ -22,6 +22,7 @@ type Service struct {
 	Name        string        `json:"name"`
 	SearchName  string        `json:"searchName"`
 	Description string        `json:"description"`
+	Status      string        `json:"status"`
 	URL         string        `json:"url"`
 	LaunchDate  LaunchDate    `json:"launchDate"`
 	Progress    int           `json:"progress"`
@@ -63,6 +64,7 @@ type CreateServiceRequest struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	FullDesc    string     `json:"fullDesc"`
+	Status      string     `json:"status"`
 	URL         string     `json:"url"`
 	Icon        string     `json:"icon"`
 	Uptime      string     `json:"uptime"`
@@ -138,7 +140,7 @@ func (c CMS) getServices() ([]Service, error) {
 		}
 	}()
 
-	rows, err := db.Query(c.CTX, "SELECT id, name, search_name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE started = true")
+	rows, err := db.Query(c.CTX, "SELECT id, name, search_name, description, status, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE started = true")
 	if err != nil {
 		return nil, logs.Error(err)
 	}
@@ -151,6 +153,7 @@ func (c CMS) getServices() ([]Service, error) {
 			&service.Name,
 			&service.SearchName,
 			&service.Description,
+			&service.Status,
 			&service.LaunchDate.Year,
 			&service.LaunchDate.Month,
 			&service.LaunchDate.Day,
@@ -190,11 +193,12 @@ func (c CMS) getService(name string) (Service, error) {
 		}
 	}()
 
-	if err := db.QueryRow(c.CTX, "SELECT id, name, search_name, description, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime FROM services WHERE search_name = $1", name).Scan(
+	if err := db.QueryRow(c.CTX, "SELECT id, name, search_name, description, status, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE search_name = $1", name).Scan(
 		&service.ID,
 		&service.Name,
 		&service.SearchName,
 		&service.Description,
+		&service.Status,
 		&service.LaunchDate.Year,
 		&service.LaunchDate.Month,
 		&service.LaunchDate.Day,
@@ -202,7 +206,8 @@ func (c CMS) getService(name string) (Service, error) {
 		&service.Progress,
 		&service.Icon,
 		&service.FullDesc,
-		&service.Uptime); err != nil {
+		&service.Uptime,
+		&service.Launched); err != nil {
 		return Service{}, logs.Error(err)
 	}
 
@@ -331,14 +336,18 @@ func (c CMS) createService(req CreateServiceRequest) (Service, error) {
 	}()
 
 	searchName := strings.ToLower(strings.ReplaceAll(req.Name, " ", "-"))
+	status := req.Status
+	if status == "" {
+		status = "planned"
+	}
 	var svc Service
 	err = db.QueryRow(c.CTX,
-		`INSERT INTO services (name, search_name, description, full_description, url, icon, uptime, launch_year, launch_month, launch_day, started)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
-		 RETURNING id, name, description, url, launch_year, launch_month, launch_day, progress, icon, full_description, uptime, live`,
-		req.Name, searchName, req.Description, req.FullDesc, req.URL, req.Icon, req.Uptime,
+		`INSERT INTO services (name, search_name, description, full_description, status, url, icon, uptime, launch_year, launch_month, launch_day, started)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
+		 RETURNING id, name, search_name, description, status, url, launch_year, launch_month, launch_day, progress, icon, full_description, uptime, live`,
+		req.Name, searchName, req.Description, req.FullDesc, status, req.URL, req.Icon, req.Uptime,
 		req.LaunchDate.Year, req.LaunchDate.Month, req.LaunchDate.Day,
-	).Scan(&svc.ID, &svc.Name, &svc.Description, &svc.URL,
+	).Scan(&svc.ID, &svc.Name, &svc.SearchName, &svc.Description, &svc.Status, &svc.URL,
 		&svc.LaunchDate.Year, &svc.LaunchDate.Month, &svc.LaunchDate.Day,
 		&svc.Progress, &svc.Icon, &svc.FullDesc, &svc.Uptime, &svc.Launched)
 	if err != nil {
@@ -360,13 +369,13 @@ func (c CMS) updateService(name string, req CreateServiceRequest) (Service, erro
 
 	var svc Service
 	err = db.QueryRow(c.CTX,
-		`UPDATE services SET name=$1, description=$2, full_description=$3, url=$4, icon=$5, uptime=$6,
-		 launch_year=$7, launch_month=$8, launch_day=$9
-		 WHERE search_name=$10
-		 RETURNING id, name, description, url, launch_year, launch_month, launch_day, progress, icon, full_description, uptime, live`,
-		req.Name, req.Description, req.FullDesc, req.URL, req.Icon, req.Uptime,
+		`UPDATE services SET name=$1, description=$2, full_description=$3, status=$4, url=$5, icon=$6, uptime=$7,
+		 launch_year=$8, launch_month=$9, launch_day=$10
+		 WHERE search_name=$11
+		 RETURNING id, name, search_name, description, status, url, launch_year, launch_month, launch_day, progress, icon, full_description, uptime, live`,
+		req.Name, req.Description, req.FullDesc, req.Status, req.URL, req.Icon, req.Uptime,
 		req.LaunchDate.Year, req.LaunchDate.Month, req.LaunchDate.Day, name,
-	).Scan(&svc.ID, &svc.Name, &svc.Description, &svc.URL,
+	).Scan(&svc.ID, &svc.Name, &svc.SearchName, &svc.Description, &svc.Status, &svc.URL,
 		&svc.LaunchDate.Year, &svc.LaunchDate.Month, &svc.LaunchDate.Day,
 		&svc.Progress, &svc.Icon, &svc.FullDesc, &svc.Uptime, &svc.Launched)
 	if err != nil {
