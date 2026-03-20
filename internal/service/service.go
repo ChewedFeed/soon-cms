@@ -37,20 +37,41 @@ func (s *Service) Start() error {
 func (s *Service) StartHTTP(errChan chan error) {
 	mux := http.NewServeMux()
 	c := cms.NewCMS(s.Config, s.Flags, errChan)
+	// Read endpoints
 	mux.HandleFunc("GET /services", c.ServicesHandler)
 	mux.HandleFunc("GET /service/{service}", c.ServiceHandler)
 	mux.HandleFunc("GET /script", c.ScriptHandler)
 	mux.HandleFunc("GET /health", healthcheck.HTTP)
 	mux.HandleFunc("GET /probe", probe.HTTP)
 
+	// Write endpoints - services
+	mux.HandleFunc("POST /service", c.CreateServiceHandler)
+	mux.HandleFunc("PUT /service/{service}", c.UpdateServiceHandler)
+	mux.HandleFunc("DELETE /service/{service}", c.DeleteServiceHandler)
+
+	// Write endpoints - links
+	mux.HandleFunc("POST /service/{service}/links", c.CreateLinkHandler)
+	mux.HandleFunc("DELETE /service/{service}/links/{id}", c.DeleteLinkHandler)
+
+	// Write endpoints - roadmap
+	mux.HandleFunc("POST /service/{service}/roadmap", c.CreateRoadmapHandler)
+	mux.HandleFunc("PUT /service/{service}/roadmap/{id}", c.UpdateRoadmapHandler)
+	mux.HandleFunc("DELETE /service/{service}/roadmap/{id}", c.DeleteRoadmapHandler)
+
+	// Write endpoints - launch tasks
+	mux.HandleFunc("GET /service/{service}/tasks", c.ListTasksHandler)
+	mux.HandleFunc("POST /service/{service}/tasks", c.CreateTaskHandler)
+	mux.HandleFunc("PUT /service/{service}/tasks/{id}", c.UpdateTaskHandler)
+	mux.HandleFunc("DELETE /service/{service}/tasks/{id}", c.DeleteTaskHandler)
+
 	mw := middleware.NewMiddleware()
 	mw.AddMiddleware(middleware.SetupLogger(middleware.Error).Logger)
 	mw.AddMiddleware(middleware.RequestID)
 	mw.AddMiddleware(middleware.Recoverer)
 	mw.AddMiddleware(mw.CORS)
-	mw.AddAllowedMethods("GET", "OPTIONS")
+	mw.AddAllowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 	mw.AddAllowedHeaders("Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-Token")
-	mw.AddAllowedOrigins("*", "https://chewedfeed.com", "https://www.chewedfeed.com")
+	mw.AddAllowedOrigins("*", "https://chewedfeed.com", "https://www.chewedfeed.com", "https://admin.chewedfeed.com")
 
 	port := s.Config.Local.HTTPPort
 	if s.Config.ProjectProperties["railway_port"].(string) != "" && s.Config.ProjectProperties["on_railway"].(bool) {
