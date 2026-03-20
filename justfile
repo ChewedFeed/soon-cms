@@ -47,6 +47,10 @@ fmt:
 # Format and lint
 pre-commit: fmt lint
 
+# Create or update an admin user
+create-admin username password:
+    GOCACHE="{{go_cache}}" go run ./cmd/create-admin/ {{username}} {{password}}
+
 # Clean build artifacts
 clean:
     GOCACHE="{{go_cache}}" go clean ./...

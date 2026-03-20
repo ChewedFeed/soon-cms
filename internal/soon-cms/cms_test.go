@@ -109,3 +109,93 @@ func TestLaunchDate(t *testing.T) {
 		t.Errorf("unexpected launch date: %+v", ld)
 	}
 }
+
+func TestLaunchTaskType(t *testing.T) {
+	task := LaunchTask{
+		ID:        1,
+		ServiceID: 5,
+		Completed: false,
+	}
+	if task.ID != 1 {
+		t.Errorf("expected ID 1, got %d", task.ID)
+	}
+	if task.Completed {
+		t.Error("expected not completed")
+	}
+}
+
+func TestCreateServiceRequest(t *testing.T) {
+	req := CreateServiceRequest{
+		Name:        "Test Service",
+		Description: "A test",
+		FullDesc:    "Full description",
+		URL:         "https://test.com",
+		Icon:        "solid fa-test",
+		Uptime:      "test",
+		LaunchDate:  LaunchDate{Year: 2026, Month: 6, Day: 1},
+	}
+
+	if req.Name != "Test Service" {
+		t.Errorf("expected 'Test Service', got '%s'", req.Name)
+	}
+	if req.LaunchDate.Year != 2026 {
+		t.Errorf("expected 2026, got %d", req.LaunchDate.Year)
+	}
+}
+
+func TestCreateLinkRequest(t *testing.T) {
+	req := CreateLinkRequest{
+		LinkType: "docs",
+		URL:      "https://docs.example.com",
+		Label:    "Documentation",
+	}
+
+	if req.LinkType != "docs" {
+		t.Errorf("expected 'docs', got '%s'", req.LinkType)
+	}
+}
+
+func TestUpdateRoadmapRequest(t *testing.T) {
+	completed := true
+	name := "Updated name"
+	req := UpdateRoadmapRequest{
+		Name:      &name,
+		Completed: &completed,
+	}
+
+	if *req.Completed != true {
+		t.Error("expected completed to be true")
+	}
+	if *req.Name != "Updated name" {
+		t.Errorf("expected 'Updated name', got '%s'", *req.Name)
+	}
+	if req.TargetDate != nil {
+		t.Error("expected nil target date")
+	}
+}
+
+func TestProjectLinkWithID(t *testing.T) {
+	link := ProjectLink{
+		ID:       42,
+		LinkType: "main",
+		URL:      "https://flags.gg",
+		Label:    "Flags.gg",
+	}
+
+	if link.ID != 42 {
+		t.Errorf("expected ID 42, got %d", link.ID)
+	}
+}
+
+func TestRoadmapItemWithID(t *testing.T) {
+	item := RoadmapItem{
+		ID:        7,
+		Name:      "Beta",
+		Completed: false,
+		SortOrder: 1,
+	}
+
+	if item.ID != 7 {
+		t.Errorf("expected ID 7, got %d", item.ID)
+	}
+}
