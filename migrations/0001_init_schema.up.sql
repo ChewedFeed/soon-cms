@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS services (
 );
 
 CREATE TABLE IF NOT EXISTS launch_task (
-    id SERIAL PRIMARY KEY,
+    launch_task_id SERIAL PRIMARY KEY,
     service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
-    completed BOOLEAN DEFAULT false
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed BOOLEAN DEFAULT false,
+    task TEXT
 );

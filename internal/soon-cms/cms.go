@@ -500,7 +500,7 @@ func (c CMS) getLaunchTasks(serviceName string) ([]LaunchTask, error) {
 	}()
 
 	rows, err := db.Query(c.CTX,
-		`SELECT lt.id, lt.service_id, lt.completed FROM launch_task lt
+		`SELECT lt.launch_task_id, lt.service_id, lt.completed FROM launch_task lt
 		 JOIN services s ON s.id = lt.service_id
 		 WHERE s.search_name = $1`, serviceName)
 	if err != nil {
@@ -534,7 +534,7 @@ func (c CMS) createLaunchTask(serviceName string, completed bool) (LaunchTask, e
 	err = db.QueryRow(c.CTX,
 		`INSERT INTO launch_task (service_id, completed)
 		 SELECT id, $2 FROM services WHERE search_name = $1
-		 RETURNING id, service_id, completed`,
+		 RETURNING launch_task_id, service_id, completed`,
 		serviceName, completed,
 	).Scan(&t.ID, &t.ServiceID, &t.Completed)
 	if err != nil {
@@ -556,8 +556,8 @@ func (c CMS) updateLaunchTask(taskID int, completed bool) (LaunchTask, error) {
 
 	var t LaunchTask
 	err = db.QueryRow(c.CTX,
-		`UPDATE launch_task SET completed = $2 WHERE id = $1
-		 RETURNING id, service_id, completed`,
+		`UPDATE launch_task SET completed = $2 WHERE launch_task_id = $1
+		 RETURNING launch_task_id, service_id, completed`,
 		taskID, completed,
 	).Scan(&t.ID, &t.ServiceID, &t.Completed)
 	if err != nil {
@@ -577,7 +577,7 @@ func (c CMS) deleteLaunchTask(taskID int) error {
 		}
 	}()
 
-	_, err = db.Exec(c.CTX, "DELETE FROM launch_task WHERE id = $1", taskID)
+	_, err = db.Exec(c.CTX, "DELETE FROM launch_task WHERE launch_task_id = $1", taskID)
 	if err != nil {
 		return logs.Error(err)
 	}
