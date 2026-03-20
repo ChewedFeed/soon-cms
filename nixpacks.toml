@@ -1,0 +1,10 @@
+providers = ["go"]
+
+[variables]
+CGO_ENABLED = "0"
+
+[phases.build]
+cmds = ["go build -o out ./cmd/soon-cms"]
+
+[start]
+cmd = "./out"
