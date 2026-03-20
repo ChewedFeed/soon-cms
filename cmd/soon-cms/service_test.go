@@ -16,6 +16,8 @@ func TestLatestMigrationVersion(t *testing.T) {
 		"0002_add_links.down.sql",
 		"0003_add_roadmap.up.sql",
 		"0003_add_roadmap.down.sql",
+		"0005_unify_project_milestones.up.sql",
+		"0005_unify_project_milestones.down.sql",
 	}
 	for _, f := range files {
 		if err := os.WriteFile(filepath.Join(dir, f), []byte("-- test"), 0644); err != nil {
@@ -27,8 +29,8 @@ func TestLatestMigrationVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if version != 3 {
-		t.Errorf("expected version 3, got %d", version)
+	if version != 5 {
+		t.Errorf("expected version 5, got %d", version)
 	}
 }
 

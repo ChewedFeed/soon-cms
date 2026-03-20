@@ -33,6 +33,27 @@ func TestGetProgressColor(t *testing.T) {
 	}
 }
 
+func TestCalculateProgressFromStatuses(t *testing.T) {
+	tests := []struct {
+		name     string
+		statuses []string
+		expected float32
+	}{
+		{"no milestones", nil, 0},
+		{"all completed", []string{"completed", "completed"}, 100},
+		{"ignores cancelled", []string{"completed", "cancelled", "planned"}, 50},
+		{"in progress not complete", []string{"in_progress", "planned"}, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := calculateProgressFromStatuses(tt.statuses)
+			if result != tt.expected {
+				t.Errorf("expected %f, got %f", tt.expected, result)
+			}
+		})
+	}
+}
 func TestProjectLinkType(t *testing.T) {
 	link := ProjectLink{
 		LinkType: "dashboard",
@@ -48,20 +69,21 @@ func TestProjectLinkType(t *testing.T) {
 	}
 }
 
-func TestRoadmapItemType(t *testing.T) {
+func TestMilestoneType(t *testing.T) {
 	target := "2026-06-01"
-	item := RoadmapItem{
-		Name:       "Beta release",
+	item := Milestone{
+		Title:      "Beta release",
+		Category:   "release",
+		Status:     "planned",
 		TargetDate: &target,
-		Completed:  false,
 		SortOrder:  1,
 	}
 
-	if item.Name != "Beta release" {
-		t.Errorf("expected 'Beta release', got '%s'", item.Name)
+	if item.Title != "Beta release" {
+		t.Errorf("expected 'Beta release', got '%s'", item.Title)
 	}
-	if item.Completed {
-		t.Error("expected not completed")
+	if item.Status != "planned" {
+		t.Errorf("expected planned, got '%s'", item.Status)
 	}
 	if *item.TargetDate != "2026-06-01" {
 		t.Errorf("expected '2026-06-01', got '%s'", *item.TargetDate)
@@ -83,23 +105,23 @@ func TestServiceStruct(t *testing.T) {
 			{LinkType: "dashboard", URL: "https://dashboard.flags.gg", Label: "Dashboard"},
 			{LinkType: "docs", URL: "https://docs.flags.gg", Label: "Docs"},
 		},
-		Roadmap: []RoadmapItem{
-			{Name: "Alpha", Completed: true, SortOrder: 0},
-			{Name: "Beta", Completed: false, SortOrder: 1},
+		Milestones: []Milestone{
+			{Title: "Alpha", Category: "feature", Status: "completed", SortOrder: 0},
+			{Title: "Beta", Category: "feature", Status: "planned", SortOrder: 1},
 		},
 	}
 
 	if len(svc.Links) != 3 {
 		t.Errorf("expected 3 links, got %d", len(svc.Links))
 	}
-	if len(svc.Roadmap) != 2 {
-		t.Errorf("expected 2 roadmap items, got %d", len(svc.Roadmap))
+	if len(svc.Milestones) != 2 {
+		t.Errorf("expected 2 milestones, got %d", len(svc.Milestones))
 	}
 	if svc.Links[1].LinkType != "dashboard" {
 		t.Errorf("expected 'dashboard', got '%s'", svc.Links[1].LinkType)
 	}
-	if !svc.Roadmap[0].Completed {
-		t.Error("expected first roadmap item to be completed")
+	if svc.Milestones[0].Status != "completed" {
+		t.Error("expected first milestone to be completed")
 	}
 }
 
@@ -107,20 +129,6 @@ func TestLaunchDate(t *testing.T) {
 	ld := LaunchDate{Year: 2026, Month: 3, Day: 20}
 	if ld.Year != 2026 || ld.Month != 3 || ld.Day != 20 {
 		t.Errorf("unexpected launch date: %+v", ld)
-	}
-}
-
-func TestLaunchTaskType(t *testing.T) {
-	task := LaunchTask{
-		ID:        1,
-		ServiceID: 5,
-		Completed: false,
-	}
-	if task.ID != 1 {
-		t.Errorf("expected ID 1, got %d", task.ID)
-	}
-	if task.Completed {
-		t.Error("expected not completed")
 	}
 }
 
@@ -155,19 +163,19 @@ func TestCreateLinkRequest(t *testing.T) {
 	}
 }
 
-func TestUpdateRoadmapRequest(t *testing.T) {
-	completed := true
-	name := "Updated name"
-	req := UpdateRoadmapRequest{
-		Name:      &name,
-		Completed: &completed,
+func TestUpdateMilestoneRequest(t *testing.T) {
+	status := "completed"
+	title := "Updated name"
+	req := UpdateMilestoneRequest{
+		Title:  &title,
+		Status: &status,
 	}
 
-	if *req.Completed != true {
-		t.Error("expected completed to be true")
+	if *req.Status != "completed" {
+		t.Error("expected status to be completed")
 	}
-	if *req.Name != "Updated name" {
-		t.Errorf("expected 'Updated name', got '%s'", *req.Name)
+	if *req.Title != "Updated name" {
+		t.Errorf("expected 'Updated name', got '%s'", *req.Title)
 	}
 	if req.TargetDate != nil {
 		t.Error("expected nil target date")
@@ -187,11 +195,12 @@ func TestProjectLinkWithID(t *testing.T) {
 	}
 }
 
-func TestRoadmapItemWithID(t *testing.T) {
-	item := RoadmapItem{
+func TestMilestoneWithID(t *testing.T) {
+	item := Milestone{
 		ID:        7,
-		Name:      "Beta",
-		Completed: false,
+		Title:     "Beta",
+		Category:  "feature",
+		Status:    "planned",
 		SortOrder: 1,
 	}
 
