@@ -1,0 +1,2 @@
+ALTER TABLE services
+    ALTER COLUMN progress DROP DEFAULT;

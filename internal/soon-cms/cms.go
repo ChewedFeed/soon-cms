@@ -140,7 +140,7 @@ func (c CMS) getServices() ([]Service, error) {
 		}
 	}()
 
-	rows, err := db.Query(c.CTX, "SELECT id, name, search_name, description, status, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE started = true")
+	rows, err := db.Query(c.CTX, "SELECT id, name, search_name, description, status, launch_year, launch_month, launch_day, url, COALESCE(progress, 0), icon, full_description, uptime, live FROM services WHERE started = true")
 	if err != nil {
 		return nil, logs.Error(err)
 	}
@@ -193,7 +193,7 @@ func (c CMS) getService(name string) (Service, error) {
 		}
 	}()
 
-	if err := db.QueryRow(c.CTX, "SELECT id, name, search_name, description, status, launch_year, launch_month, launch_day, url, progress, icon, full_description, uptime, live FROM services WHERE search_name = $1", name).Scan(
+	if err := db.QueryRow(c.CTX, "SELECT id, name, search_name, description, status, launch_year, launch_month, launch_day, url, COALESCE(progress, 0), icon, full_description, uptime, live FROM services WHERE search_name = $1", name).Scan(
 		&service.ID,
 		&service.Name,
 		&service.SearchName,
